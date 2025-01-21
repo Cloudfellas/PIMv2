@@ -34,14 +34,11 @@
         <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
     </div>
 
-    <label>Identity Type:</label><br>
-    <input type="radio" id="spn" name="identityType" value="spn" checked>
-    <label for="spn">Service Principal / Managed Identity</label>
-    <input type="radio" id="entraGroup" name="identityType" value="entraGroup">
-    <label for="entraGroup">EntraID Group</label><br><br>
+    <label for="technicalGroups">Technical Groups (comma separated):</label>
+    <input type="text" id="technicalGroups" placeholder="Enter Technical Groups"><br><br>
 
-    <label for="identity">Identity (comma separated):</label>
-    <input type="text" id="identity" placeholder="Enter Application IDs or Group Names"><br><br>
+    <label for="servicePrincipals">Service Principals (comma separated):</label>
+    <input type="text" id="servicePrincipals" placeholder="Enter Service Principals"><br><br>
 
     <button onclick="generateJSON()">Generate JSON</button>
     <button onclick="downloadJSON()">Download JSON</button>
@@ -54,23 +51,19 @@
         function generateJSON() {
             const role = document.getElementById('role').value;
             const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
-            const identityType = document.querySelector('input[name="identityType"]:checked').value;
-            const identities = document.getElementById('identity').value.split(',').map(id => id.trim());
+            const technicalGroups = document.getElementById('technicalGroups').value.split(',').map(id => id.trim());
+            const servicePrincipals = document.getElementById('servicePrincipals').value.split(',').map(id => id.trim());
 
             jsonData = {
                 "Name": "Generated Role Assignment",
-                "RoleAssignment": role
+                "RoleAssignment": role,
+                "TechnicalGroups": technicalGroups,
+                "ServicePrincipals": servicePrincipals
             };
-
-            if (identityType === 'spn') {
-                jsonData["ServicePrincipals"] = identities;
-            } else {
-                jsonData["EntraIDGroups"] = identities;
-            }
 
             if (scopeType === 'subscription') {
                 const subscriptionId = document.getElementById('subscriptionId').value;
-                jsonData["Subscription"] = { "SubscriptionId": subscriptionId };
+                jsonData["Subscriptions"] = [subscriptionId];
             } else if (scopeType === 'rg') {
                 const resourceGroup = document.getElementById('resourceGroup').value;
                 const subscriptionId = document.getElementById('subscriptionId').value;
