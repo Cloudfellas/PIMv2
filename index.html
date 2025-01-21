@@ -7,17 +7,31 @@
 </head>
 <body>
     <h2>Role Assignment JSON Generator</h2>
+
     <label for="role">Role Assignment:</label>
     <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
 
-    <label for="resourceGroup">Resource Group Name:</label>
-    <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+    <label>Assignment Type:</label><br>
+    <input type="radio" id="rgLevel" name="assignmentType" value="rg" checked>
+    <label for="rgLevel">Resource Group Level</label>
+    <input type="radio" id="resourceLevel" name="assignmentType" value="resource">
+    <label for="resourceLevel">Specific Resource Level</label><br><br>
+
+    <div id="rgInputs">
+        <label for="resourceGroup">Resource Group Name:</label>
+        <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+    </div>
+
+    <div id="resourceInputs" style="display:none;">
+        <label for="resourceName">Resource Name:</label>
+        <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
+    </div>
 
     <label for="subscriptionId">Subscription ID:</label>
     <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
 
-    <label for="technicalGroups">Technical Groups (comma separated):</label>
-    <input type="text" id="technicalGroups" placeholder="Enter groups"><br><br>
+    <label for="servicePrincipals">Service Principals (comma separated):</label>
+    <input type="text" id="servicePrincipals" placeholder="Enter Service Principals"><br><br>
 
     <button onclick="generateJSON()">Generate JSON</button>
     <button onclick="downloadJSON()">Download JSON</button>
@@ -29,21 +43,31 @@
 
         function generateJSON() {
             const role = document.getElementById('role').value;
-            const resourceGroup = document.getElementById('resourceGroup').value;
+            const assignmentType = document.querySelector('input[name="assignmentType"]:checked').value;
             const subscriptionId = document.getElementById('subscriptionId').value;
-            const technicalGroups = document.getElementById('technicalGroups').value.split(',');
+            const servicePrincipals = document.getElementById('servicePrincipals').value.split(',').map(sp => sp.trim());
 
             jsonData = {
                 "Name": "Generated Role Assignment",
                 "RoleAssignment": role,
-                "ResourceGroups": [
-                    {
-                        "ResourceGroupName": resourceGroup,
-                        "SubscriptionId": subscriptionId
-                    }
-                ],
-                "TechnicalGroups": technicalGroups.map(group => group.trim())
+                "ServicePrincipals": servicePrincipals
             };
+
+            if (assignmentType === 'rg') {
+                const resourceGroup = document.getElementById('resourceGroup').value;
+                jsonData["ResourceGroups"] = [{
+                    "ResourceGroupName": resourceGroup,
+                    "SubscriptionId": subscriptionId
+                }];
+            } else {
+                const resourceGroup = document.getElementById('resourceGroup').value;
+                const resourceName = document.getElementById('resourceName').value;
+                jsonData["Resources"] = [{
+                    "SubscriptionId": subscriptionId,
+                    "ResourceGroupName": resourceGroup,
+                    "ResourceName": resourceName
+                }];
+            }
 
             document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
         }
@@ -59,6 +83,18 @@
             a.download = 'role_assignment.json';
             a.click();
         }
+
+        document.querySelectorAll('input[name="assignmentType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'rg') {
+                    document.getElementById('rgInputs').style.display = 'block';
+                    document.getElementById('resourceInputs').style.display = 'none';
+                } else {
+                    document.getElementById('rgInputs').style.display = 'block';
+                    document.getElementById('resourceInputs').style.display = 'block';
+                }
+            });
+        });
     </script>
 </body>
 </html>
