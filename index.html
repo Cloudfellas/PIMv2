@@ -11,13 +11,20 @@
     <label for="role">Role Assignment:</label>
     <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
 
-    <label>Assignment Type:</label><br>
-    <input type="radio" id="rgLevel" name="assignmentType" value="rg" checked>
+    <label>Scope Type:</label><br>
+    <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
+    <label for="subscriptionLevel">Subscription Level</label>
+    <input type="radio" id="rgLevel" name="scopeType" value="rg">
     <label for="rgLevel">Resource Group Level</label>
-    <input type="radio" id="resourceLevel" name="assignmentType" value="resource">
+    <input type="radio" id="resourceLevel" name="scopeType" value="resource">
     <label for="resourceLevel">Specific Resource Level</label><br><br>
 
-    <div id="rgInputs">
+    <div id="subscriptionInputs">
+        <label for="subscriptionId">Subscription ID:</label>
+        <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
+    </div>
+
+    <div id="rgInputs" style="display:none;">
         <label for="resourceGroup">Resource Group Name:</label>
         <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
     </div>
@@ -27,11 +34,14 @@
         <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
     </div>
 
-    <label for="subscriptionId">Subscription ID:</label>
-    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
+    <label>Identity Type:</label><br>
+    <input type="radio" id="spn" name="identityType" value="spn" checked>
+    <label for="spn">Service Principal / Managed Identity</label>
+    <input type="radio" id="entraGroup" name="identityType" value="entraGroup">
+    <label for="entraGroup">EntraID Group</label><br><br>
 
-    <label for="servicePrincipals">Service Principals (comma separated):</label>
-    <input type="text" id="servicePrincipals" placeholder="Enter Service Principals"><br><br>
+    <label for="identity">Identity (comma separated):</label>
+    <input type="text" id="identity" placeholder="Enter Application IDs or Group Names"><br><br>
 
     <button onclick="generateJSON()">Generate JSON</button>
     <button onclick="downloadJSON()">Download JSON</button>
@@ -43,18 +53,27 @@
 
         function generateJSON() {
             const role = document.getElementById('role').value;
-            const assignmentType = document.querySelector('input[name="assignmentType"]:checked').value;
-            const subscriptionId = document.getElementById('subscriptionId').value;
-            const servicePrincipals = document.getElementById('servicePrincipals').value.split(',').map(sp => sp.trim());
+            const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
+            const identityType = document.querySelector('input[name="identityType"]:checked').value;
+            const identities = document.getElementById('identity').value.split(',').map(id => id.trim());
 
             jsonData = {
                 "Name": "Generated Role Assignment",
-                "RoleAssignment": role,
-                "ServicePrincipals": servicePrincipals
+                "RoleAssignment": role
             };
 
-            if (assignmentType === 'rg') {
+            if (identityType === 'spn') {
+                jsonData["ServicePrincipals"] = identities;
+            } else {
+                jsonData["EntraIDGroups"] = identities;
+            }
+
+            if (scopeType === 'subscription') {
+                const subscriptionId = document.getElementById('subscriptionId').value;
+                jsonData["Subscription"] = { "SubscriptionId": subscriptionId };
+            } else if (scopeType === 'rg') {
                 const resourceGroup = document.getElementById('resourceGroup').value;
+                const subscriptionId = document.getElementById('subscriptionId').value;
                 jsonData["ResourceGroups"] = [{
                     "ResourceGroupName": resourceGroup,
                     "SubscriptionId": subscriptionId
@@ -62,6 +81,7 @@
             } else {
                 const resourceGroup = document.getElementById('resourceGroup').value;
                 const resourceName = document.getElementById('resourceName').value;
+                const subscriptionId = document.getElementById('subscriptionId').value;
                 jsonData["Resources"] = [{
                     "SubscriptionId": subscriptionId,
                     "ResourceGroupName": resourceGroup,
@@ -84,15 +104,11 @@
             a.click();
         }
 
-        document.querySelectorAll('input[name="assignmentType"]').forEach(radio => {
+        document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
             radio.addEventListener('change', function() {
-                if (this.value === 'rg') {
-                    document.getElementById('rgInputs').style.display = 'block';
-                    document.getElementById('resourceInputs').style.display = 'none';
-                } else {
-                    document.getElementById('rgInputs').style.display = 'block';
-                    document.getElementById('resourceInputs').style.display = 'block';
-                }
+                document.getElementById('subscriptionInputs').style.display = this.value === 'subscription' ? 'block' : 'none';
+                document.getElementById('rgInputs').style.display = this.value === 'rg' ? 'block' : 'none';
+                document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
             });
         });
     </script>
