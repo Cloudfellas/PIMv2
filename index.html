@@ -27,11 +27,17 @@
     <div id="rgInputs" style="display:none;">
         <label for="resourceGroup">Resource Group Name:</label>
         <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+        <label for="rgSubscriptionId">Subscription ID:</label>
+        <input type="text" id="rgSubscriptionId" placeholder="Enter Subscription ID"><br><br>
     </div>
 
     <div id="resourceInputs" style="display:none;">
         <label for="resourceName">Resource Name:</label>
         <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
+        <label for="resResourceGroup">Resource Group Name:</label>
+        <input type="text" id="resResourceGroup" placeholder="Enter Resource Group"><br><br>
+        <label for="resSubscriptionId">Subscription ID:</label>
+        <input type="text" id="resSubscriptionId" placeholder="Enter Subscription ID"><br><br>
     </div>
 
     <label for="technicalGroups">Technical Groups (comma separated):</label>
@@ -66,15 +72,15 @@
                 jsonData["Subscriptions"] = [subscriptionId];
             } else if (scopeType === 'rg') {
                 const resourceGroup = document.getElementById('resourceGroup').value;
-                const subscriptionId = document.getElementById('subscriptionId').value;
+                const subscriptionId = document.getElementById('rgSubscriptionId').value;
                 jsonData["ResourceGroups"] = [{
                     "ResourceGroupName": resourceGroup,
                     "SubscriptionId": subscriptionId
                 }];
             } else {
-                const resourceGroup = document.getElementById('resourceGroup').value;
+                const resourceGroup = document.getElementById('resResourceGroup').value;
                 const resourceName = document.getElementById('resourceName').value;
-                const subscriptionId = document.getElementById('subscriptionId').value;
+                const subscriptionId = document.getElementById('resSubscriptionId').value;
                 jsonData["Resources"] = [{
                     "SubscriptionId": subscriptionId,
                     "ResourceGroupName": resourceGroup,
