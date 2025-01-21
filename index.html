@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Assignment JSON Generator</title>
+</head>
+<body>
+    <h2>Role Assignment JSON Generator</h2>
+    <label for="role">Role Assignment:</label>
+    <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
+
+    <label for="resourceGroup">Resource Group Name:</label>
+    <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+
+    <label for="subscriptionId">Subscription ID:</label>
+    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
+
+    <label for="technicalGroups">Technical Groups (comma separated):</label>
+    <input type="text" id="technicalGroups" placeholder="Enter groups"><br><br>
+
+    <button onclick="generateJSON()">Generate JSON</button>
+    <button onclick="downloadJSON()">Download JSON</button>
+
+    <pre id="jsonOutput"></pre>
+
+    <script>
+        let jsonData = {};
+
+        function generateJSON() {
+            const role = document.getElementById('role').value;
+            const resourceGroup = document.getElementById('resourceGroup').value;
+            const subscriptionId = document.getElementById('subscriptionId').value;
+            const technicalGroups = document.getElementById('technicalGroups').value.split(',');
+
+            jsonData = {
+                "Name": "Generated Role Assignment",
+                "RoleAssignment": role,
+                "ResourceGroups": [
+                    {
+                        "ResourceGroupName": resourceGroup,
+                        "SubscriptionId": subscriptionId
+                    }
+                ],
+                "TechnicalGroups": technicalGroups.map(group => group.trim())
+            };
+
+            document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+        }
+
+        function downloadJSON() {
+            if (Object.keys(jsonData).length === 0) {
+                alert("Please generate JSON first");
+                return;
+            }
+            const blob = new Blob([JSON.stringify(jsonData, null, 4)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'role_assignment.json';
+            a.click();
+        }
+    </script>
+</body>
+</html>
