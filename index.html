@@ -1,115 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Role Assignment JSON Generator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Assignment JSON Generator</title>
 </head>
 <body>
-    <h2>Role Assignment JSON Generator</h2>
+  <h2>Role Assignment JSON Generator</h2>
 
-    <label for="role">Role Assignment:</label>
-    <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
+  <label for="role">Role Assignment:</label>
+  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
 
-    <label>Scope Type:</label><br>
-    <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
-    <label for="subscriptionLevel">Subscription Level</label>
-    <input type="radio" id="rgLevel" name="scopeType" value="rg">
-    <label for="rgLevel">Resource Group Level</label>
-    <input type="radio" id="resourceLevel" name="scopeType" value="resource">
-    <label for="resourceLevel">Specific Resource Level</label><br><br>
+  <label>Scope Type:</label><br>
+  <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
+  <label for="subscriptionLevel">Subscription Level</label>
+  <input type="radio" id="rgLevel" name="scopeType" value="rg">
+  <label for="rgLevel">Resource Group Level</label>
+  <input type="radio" id="resourceLevel" name="scopeType" value="resource">
+  <label for="resourceLevel">Specific Resource Level</label><br><br>
 
-    <div id="subscriptionInputs">
-        <label for="subscriptionId">Subscription ID:</label>
-        <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
-    </div>
+  <div id="subscriptionInputs">
+    <label for="subscriptionId">Subscription ID:</label>
+    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
+  </div>
 
-    <div id="rgInputs" style="display:none;">
-        <label for="resourceGroup">Resource Group Name:</label>
-        <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
-        <label for="rgSubscriptionId">Subscription ID:</label>
-        <input type="text" id="rgSubscriptionId" placeholder="Enter Subscription ID"><br><br>
-    </div>
+  <div id="rgInputs" style="display:none;">
+    <label for="resourceGroup">Resource Group Name:</label>
+    <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+    <label for="rgSubscriptionId">Subscription ID:</label>
+    <input type="text" id="rgSubscriptionId" placeholder="Enter Subscription ID"><br><br>
+  </div>
 
-    <div id="resourceInputs" style="display:none;">
-        <label for="resourceName">Resource Name:</label>
-        <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
-        <label for="resResourceGroup">Resource Group Name:</label>
-        <input type="text" id="resResourceGroup" placeholder="Enter Resource Group"><br><br>
-        <label for="resSubscriptionId">Subscription ID:</label>
-        <input type="text" id="resSubscriptionId" placeholder="Enter Subscription ID"><br><br>
-    </div>
+  <div id="resourceInputs" style="display:none;">
+    <label for="resourceName">Resource Name:</label>
+    <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
+    <label for="resResourceGroup">Resource Group Name:</label>
+    <input type="text" id="resResourceGroup" placeholder="Enter Resource Group"><br><br>
+    <label for="resSubscriptionId">Subscription ID:</label>
+    <input type="text" id="resSubscriptionId" placeholder="Enter Subscription ID"><br><br>
+  </div>
 
-    <label for="technicalGroups">Technical Groups (comma separated):</label>
-    <input type="text" id="technicalGroups" placeholder="Enter Technical Groups"><br><br>
+  <label for="technicalGroups">Technical Groups (comma separated):</label>
+  <input type="text" id="technicalGroups" placeholder="Enter Technical Groups"><br><br>
 
-    <label for="servicePrincipals">Service Principals (comma separated):</label>
-    <input type="text" id="servicePrincipals" placeholder="Enter Service Principals"><br><br>
+  <label for="servicePrincipals">Service Principals (comma separated):</label>
+  <input type="text" id="servicePrincipals" placeholder="Enter Service Principals"><br><br>
 
-    <button onclick="generateJSON()">Generate JSON</button>
-    <button onclick="downloadJSON()">Download JSON</button>
+  <button onclick="generateJSON()">Generate JSON</button>
+  <button onclick="downloadJSON()">Download JSON</button>
 
-    <pre id="jsonOutput"></pre>
+  <pre id="jsonOutput"></pre>
 
-    <script>
-        let jsonData = {};
+  <script>
+    let jsonData = [];
 
-        function generateJSON() {
-            const role = document.getElementById('role').value;
-            const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
-            const technicalGroups = document.getElementById('technicalGroups').value.split(',').map(id => id.trim());
-            const servicePrincipals = document.getElementById('servicePrincipals').value.split(',').map(id => id.trim());
+    function generateJSON() {
+      const role = document.getElementById('role').value;
+      const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
+      const technicalGroups = document.getElementById('technicalGroups').value.split(',')
+        .map(id => id.trim())
+        .filter(id => id !== "");
+      const servicePrincipals = document.getElementById('servicePrincipals').value.split(',')
+        .map(id => id.trim())
+        .filter(id => id !== "");
 
-            jsonData = {
-                "Name": "Generated Role Assignment",
-                "RoleAssignment": role,
-                "TechnicalGroups": technicalGroups,
-                "ServicePrincipals": servicePrincipals
-            };
+      // Build the base assignment object.
+      let assignment = {
+        "Name": "Generated Role Assignment",
+        "RoleAssignment": role,
+        "TechnicalGroups": technicalGroups,
+        "ServicePrincipals": servicePrincipals
+      };
 
-            if (scopeType === 'subscription') {
-                const subscriptionId = document.getElementById('subscriptionId').value;
-                jsonData["Subscriptions"] = [subscriptionId];
-            } else if (scopeType === 'rg') {
-                const resourceGroup = document.getElementById('resourceGroup').value;
-                const subscriptionId = document.getElementById('rgSubscriptionId').value;
-                jsonData["ResourceGroups"] = [{
-                    "ResourceGroupName": resourceGroup,
-                    "SubscriptionId": subscriptionId
-                }];
-            } else {
-                const resourceGroup = document.getElementById('resResourceGroup').value;
-                const resourceName = document.getElementById('resourceName').value;
-                const subscriptionId = document.getElementById('resSubscriptionId').value;
-                jsonData["Resources"] = [{
-                    "SubscriptionId": subscriptionId,
-                    "ResourceGroupName": resourceGroup,
-                    "ResourceName": resourceName
-                }];
-            }
+      // Build the ResourceGroups array based on scope type.
+      if (scopeType === 'subscription') {
+        const subscriptionId = document.getElementById('subscriptionId').value;
+        // For subscription-level assignments, we use a placeholder name (e.g., "Subscription Level")
+        assignment["ResourceGroups"] = [{
+          "ResourceGroupName": "Subscription Level",
+          "SubscriptionId": subscriptionId
+        }];
+      } else if (scopeType === 'rg') {
+        const resourceGroup = document.getElementById('resourceGroup').value;
+        const subscriptionId = document.getElementById('rgSubscriptionId').value;
+        assignment["ResourceGroups"] = [{
+          "ResourceGroupName": resourceGroup,
+          "SubscriptionId": subscriptionId
+        }];
+      } else { // resource level
+        const resourceGroup = document.getElementById('resResourceGroup').value;
+        const resourceName = document.getElementById('resourceName').value;
+        const subscriptionId = document.getElementById('resSubscriptionId').value;
+        // For resource-level assignments, you might want to include both the ResourceGroups and Resources.
+        assignment["ResourceGroups"] = [{
+          "ResourceGroupName": resourceGroup,
+          "SubscriptionId": subscriptionId
+        }];
+        // Optionally, include the specific resource.
+        assignment["Resources"] = [{
+          "ResourceName": resourceName,
+          "ResourceGroupName": resourceGroup,
+          "SubscriptionId": subscriptionId
+        }];
+      }
 
-            document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+      // Wrap the assignment in an array.
+      jsonData = [assignment];
+
+      // Display the generated JSON.
+      document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+
+      // Send the generated JSON to your Azure Function.
+      sendJSONToFunction(jsonData);
+    }
+
+    function sendJSONToFunction(data) {
+      // Replace the URL below with the URL of your Azure Function.
+      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/api/create-gh-pr-sub";
+
+      fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Network response was not OK");
         }
+        return response.json();
+      })
+      .then(result => {
+        console.log("Function response:", result);
+        document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
+      })
+      .catch(error => {
+        console.error("Error sending JSON to Function:", error);
+      });
+    }
 
-        function downloadJSON() {
-            if (Object.keys(jsonData).length === 0) {
-                alert("Please generate JSON first");
-                return;
-            }
-            const blob = new Blob([JSON.stringify(jsonData, null, 4)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'role_assignment.json';
-            a.click();
-        }
+    function downloadJSON() {
+      if (jsonData.length === 0) {
+        alert("Please generate JSON first");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(jsonData, null, 4)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'role_assignment.json';
+      a.click();
+    }
 
-        document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.getElementById('subscriptionInputs').style.display = this.value === 'subscription' ? 'block' : 'none';
-                document.getElementById('rgInputs').style.display = this.value === 'rg' ? 'block' : 'none';
-                document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
-            });
-        });
-    </script>
+    // Toggle input visibility based on the selected scope type.
+    document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        document.getElementById('subscriptionInputs').style.display = this.value === 'subscription' ? 'block' : 'none';
+        document.getElementById('rgInputs').style.display = this.value === 'rg' ? 'block' : 'none';
+        document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
+      });
+    });
+  </script>
 </body>
 </html>
