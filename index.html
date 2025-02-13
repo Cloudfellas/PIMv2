@@ -58,41 +58,29 @@
         .map(id => id.trim())
         .filter(id => id !== "");
 
-      // Build the base assignment object.
       let assignment = {
         "RoleAssignment": role,
         "TechnicalGroups": technicalGroups
       };
 
       if (scopeType === 'subscription') {
-        const subscriptionId = document.getElementById('subscriptionId').value;
-        assignment["SubscriptionId"] = subscriptionId;
+        assignment["SubscriptionId"] = document.getElementById('subscriptionId').value;
       } else if (scopeType === 'rg') {
-        const resourceGroup = document.getElementById('resourceGroup').value;
-        const subscriptionId = document.getElementById('rgSubscriptionId').value;
-        assignment["SubscriptionId"] = subscriptionId;
+        assignment["SubscriptionId"] = document.getElementById('rgSubscriptionId').value;
         assignment["ResourceGroups"] = [{
-          "ResourceGroupName": resourceGroup
+          "ResourceGroupName": document.getElementById('resourceGroup').value
         }];
-      } else { // Resource Level
-        const resourceGroup = document.getElementById('resResourceGroup').value;
-        const resourceName = document.getElementById('resourceName').value;
-        const subscriptionId = document.getElementById('resSubscriptionId').value;
-
-        assignment["SubscriptionId"] = subscriptionId;
+      } else {
+        assignment["SubscriptionId"] = document.getElementById('resSubscriptionId').value;
         assignment["Resources"] = [{
-          "ResourceName": resourceName,
-          "ResourceGroupName": resourceGroup
+          "ResourceName": document.getElementById('resourceName').value,
+          "ResourceGroupName": document.getElementById('resResourceGroup').value
         }];
       }
 
-      // Wrap the assignment in an array.
       jsonData = [assignment];
 
-      // Display the generated JSON.
       document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-
-      // Send the generated JSON to your Azure Function.
       sendJSONToFunction(jsonData);
     }
 
@@ -115,9 +103,16 @@
       .then(result => {
         console.log("Function response:", result);
         document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
+
+        if (result.message === "No changes detected. Your request is already applied.") {
+          alert("✅ No PR was created because the assignment already exists.");
+        } else {
+          alert("🎉 PR Created: " + result.pr_url);
+        }
       })
       .catch(error => {
         console.error("Error sending JSON to Function:", error);
+        alert("❌ Error processing request. Check console for details.");
       });
     }
 
@@ -133,7 +128,6 @@
       a.click();
     }
 
-    // Toggle input visibility based on the selected scope type.
     document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
       radio.addEventListener('change', function() {
         document.getElementById('subscriptionInputs').style.display = this.value === 'subscription' ? 'block' : 'none';
