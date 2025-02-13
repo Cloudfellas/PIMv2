@@ -1,173 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Role Assignment JSON Generator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Assignment JSON Generator</title>
 </head>
 <body>
-    <h2>Role Assignment JSON Generator</h2>
+  <h2>Role Assignment JSON Generator</h2>
 
-    <label for="role">Role Assignment:</label>
-    <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
+  <label for="role">Role Assignment:</label>
+  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
 
-    <label>Scope Type:</label><br>
-    <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
-    <label for="subscriptionLevel">Subscription Level</label>
-    <input type="radio" id="rgLevel" name="scopeType" value="rg">
-    <label for="rgLevel">Resource Group Level</label>
-    <input type="radio" id="resourceLevel" name="scopeType" value="resource">
-    <label for="resourceLevel">Specific Resource Level</label><br><br>
+  <label>Scope Type:</label><br>
+  <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
+  <label for="subscriptionLevel">Subscription Level</label>
+  <input type="radio" id="rgLevel" name="scopeType" value="rg">
+  <label for="rgLevel">Resource Group Level</label>
+  <input type="radio" id="resourceLevel" name="scopeType" value="resource">
+  <label for="resourceLevel">Specific Resource Level</label><br><br>
 
-    <div id="subscriptionInputs">
-        <label for="subscriptionId">Subscription ID:</label>
-        <select id="subscriptionId" onchange="fetchResourceGroups()">
-            <option value="">Select a Subscription</option>
-        </select><br><br>
-    </div>
+  <div id="subscriptionInputs">
+    <label for="subscriptionId">Subscription ID:</label>
+    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
+  </div>
 
-    <div id="rgInputs" style="display:none;">
-        <label for="resourceGroup">Resource Group Name:</label>
-        <select id="resourceGroup" onchange="fetchResources()">
-            <option value="">Select a Resource Group</option>
-        </select><br><br>
-    </div>
+  <div id="rgInputs" style="display:none;">
+    <label for="resourceGroup">Resource Group Name:</label>
+    <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+    <label for="rgSubscriptionId">Subscription ID:</label>
+    <input type="text" id="rgSubscriptionId" placeholder="Enter Subscription ID"><br><br>
+  </div>
 
-    <div id="resourceInputs" style="display:none;">
-        <label for="resourceName">Resource Name:</label>
-        <select id="resourceName">
-            <option value="">Select a Resource</option>
-        </select><br><br>
-    </div>
+  <div id="resourceInputs" style="display:none;">
+    <label for="resourceName">Resource Name:</label>
+    <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
+    <label for="resResourceGroup">Resource Group Name:</label>
+    <input type="text" id="resResourceGroup" placeholder="Enter Resource Group"><br><br>
+    <label for="resSubscriptionId">Subscription ID:</label>
+    <input type="text" id="resSubscriptionId" placeholder="Enter Subscription ID"><br><br>
+  </div>
 
-    <label for="technicalGroups">Technical Groups (comma separated):</label>
-    <input type="text" id="technicalGroups" placeholder="Enter Technical Groups"><br><br>
+  <label for="technicalGroups">Technical Groups (comma separated):</label>
+  <input type="text" id="technicalGroups" placeholder="Enter Technical Groups"><br><br>
 
-    <button onclick="generateJSON()">Generate JSON</button>
+  <button onclick="generateJSON()">Generate JSON</button>
+  <button onclick="downloadJSON()">Download JSON</button>
 
-    <pre id="jsonOutput"></pre>
+  <pre id="jsonOutput"></pre>
 
-    <script>
-        const functionUrl = "https://pimv2-pr-function.azurewebsites.net/get-azure-resources";
+  <script>
+    let jsonData = [];
 
-        async function fetchSubscriptions() {
-            try {
-                const response = await fetch(functionUrl);
-                if (!response.ok) throw new Error("Failed to fetch subscriptions.");
-                const data = await response.json();
+    function generateJSON() {
+      const role = document.getElementById('role').value;
+      const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
+      const technicalGroups = document.getElementById('technicalGroups').value.split(',')
+        .map(id => id.trim())
+        .filter(id => id !== "");
 
-                const subDropdown = document.getElementById("subscriptionId");
-                subDropdown.innerHTML = "<option value=''>Select a Subscription</option>";
+      // Build the base assignment object.
+      let assignment = {
+        "RoleAssignment": role,
+        "TechnicalGroups": technicalGroups
+      };
 
-                data.subscriptions.forEach(sub => {
-                    let option = document.createElement("option");
-                    option.value = sub.subscriptionId;
-                    option.textContent = `${sub.displayName} (${sub.subscriptionId})`;
-                    subDropdown.appendChild(option);
-                });
+      if (scopeType === 'subscription') {
+        const subscriptionId = document.getElementById('subscriptionId').value;
+        assignment["SubscriptionId"] = subscriptionId;
+      } else if (scopeType === 'rg') {
+        const resourceGroup = document.getElementById('resourceGroup').value;
+        const subscriptionId = document.getElementById('rgSubscriptionId').value;
+        assignment["SubscriptionId"] = subscriptionId;
+        assignment["ResourceGroups"] = [{
+          "ResourceGroupName": resourceGroup
+        }];
+      } else { // Resource Level
+        const resourceGroup = document.getElementById('resResourceGroup').value;
+        const resourceName = document.getElementById('resourceName').value;
+        const subscriptionId = document.getElementById('resSubscriptionId').value;
 
-                console.log("✅ Subscriptions loaded.");
-            } catch (error) {
-                console.error("Error fetching subscriptions:", error);
-            }
+        assignment["SubscriptionId"] = subscriptionId;
+        assignment["Resources"] = [{
+          "ResourceName": resourceName,
+          "ResourceGroupName": resourceGroup
+        }];
+      }
+
+      // Wrap the assignment in an array.
+      jsonData = [assignment];
+
+      // Display the generated JSON.
+      document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+
+      // Send the generated JSON to your Azure Function.
+      sendJSONToFunction(jsonData);
+    }
+
+    function sendJSONToFunction(data) {
+      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+
+      fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Network response was not OK");
         }
+        return response.json();
+      })
+      .then(result => {
+        console.log("Function response:", result);
+        document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
+      })
+      .catch(error => {
+        console.error("Error sending JSON to Function:", error);
+      });
+    }
 
-        async function fetchResourceGroups() {
-            const subscriptionId = document.getElementById("subscriptionId").value;
-            if (!subscriptionId) return;
+    function downloadJSON() {
+      if (jsonData.length === 0) {
+        alert("Please generate JSON first");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(jsonData, null, 4)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'role_assignment.json';
+      a.click();
+    }
 
-            try {
-                const response = await fetch(`${functionUrl}?subscriptionId=${subscriptionId}`);
-                if (!response.ok) throw new Error("Failed to fetch resource groups.");
-                const data = await response.json();
-
-                const rgDropdown = document.getElementById("resourceGroup");
-                rgDropdown.innerHTML = "<option value=''>Select a Resource Group</option>";
-
-                data.resourceGroups.forEach(rg => {
-                    let option = document.createElement("option");
-                    option.value = rg.name;
-                    option.textContent = `${rg.name} (${rg.location})`;
-                    rgDropdown.appendChild(option);
-                });
-
-                console.log("✅ Resource Groups loaded.");
-            } catch (error) {
-                console.error("Error fetching resource groups:", error);
-            }
-        }
-
-        async function fetchResources() {
-            const subscriptionId = document.getElementById("subscriptionId").value;
-            const resourceGroup = document.getElementById("resourceGroup").value;
-            if (!subscriptionId || !resourceGroup) return;
-
-            try {
-                const response = await fetch(`${functionUrl}?subscriptionId=${subscriptionId}&resourceGroup=${resourceGroup}`);
-                if (!response.ok) throw new Error("Failed to fetch resources.");
-                const data = await response.json();
-
-                const resourceDropdown = document.getElementById("resourceName");
-                resourceDropdown.innerHTML = "<option value=''>Select a Resource</option>";
-
-                data.resources.forEach(resource => {
-                    let option = document.createElement("option");
-                    option.value = resource.name;
-                    option.textContent = `${resource.name} (${resource.type})`;
-                    resourceDropdown.appendChild(option);
-                });
-
-                console.log("✅ Resources loaded.");
-            } catch (error) {
-                console.error("Error fetching resources:", error);
-            }
-        }
-
-        function generateJSON() {
-            const role = document.getElementById('role').value;
-            const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
-            const technicalGroups = document.getElementById('technicalGroups').value.split(',').map(id => id.trim()).filter(id => id !== "");
-
-            let jsonData = {
-                "RoleAssignment": role,
-                "TechnicalGroups": technicalGroups
-            };
-
-            if (scopeType === 'subscription') {
-                jsonData["SubscriptionId"] = document.getElementById('subscriptionId').value;
-            } else if (scopeType === 'rg') {
-                jsonData["SubscriptionId"] = document.getElementById('subscriptionId').value;
-                jsonData["ResourceGroups"] = [{
-                    "ResourceGroupName": document.getElementById('resourceGroup').value
-                }];
-            } else {
-                jsonData["SubscriptionId"] = document.getElementById('subscriptionId').value;
-                jsonData["Resources"] = [{
-                    "ResourceName": document.getElementById('resourceName').value,
-                    "ResourceGroupName": document.getElementById('resourceGroup').value
-                }];
-            }
-
-            document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-        }
-
-        document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.getElementById('subscriptionInputs').style.display = this.value !== 'none' ? 'block' : 'none';
-                document.getElementById('rgInputs').style.display = this.value === 'rg' || this.value === 'resource' ? 'block' : 'none';
-                document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
-
-                if (this.value === 'subscription') {
-                    fetchSubscriptions();
-                } else if (this.value === 'rg') {
-                    fetchSubscriptions();
-                } else if (this.value === 'resource') {
-                    fetchSubscriptions();
-                }
-            });
-        });
-
-        document.addEventListener("DOMContentLoaded", fetchSubscriptions);
-    </script>
+    // Toggle input visibility based on the selected scope type.
+    document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        document.getElementById('subscriptionInputs').style.display = this.value === 'subscription' ? 'block' : 'none';
+        document.getElementById('rgInputs').style.display = this.value === 'rg' ? 'block' : 'none';
+        document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
+      });
+    });
+  </script>
 </body>
 </html>
