@@ -9,7 +9,7 @@
   <h2>Role Assignment JSON Generator</h2>
 
   <label for="role">Role:</label>
-  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
+  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required><br><br>
 
   <label>Scope Type:</label><br>
   <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
@@ -21,21 +21,21 @@
 
   <div id="subscriptionInputs">
     <label for="subscriptionId">Subscription ID:</label>
-    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID"><br><br>
+    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required><br><br>
   </div>
 
   <div id="rgInputs" style="display:none;">
-    <label for="resourceGroup">Resource Group Name:</label>
-    <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
+    <label for="resourceGroups">Resource Group Names (comma separated):</label>
+    <input type="text" id="resourceGroups" placeholder="Enter Resource Groups" required><br><br>
   </div>
 
   <div id="resourceInputs" style="display:none;">
-    <label for="resourceName">Resource Name:</label>
-    <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
+    <label for="resources">Resource Names (comma separated):</label>
+    <input type="text" id="resources" placeholder="Enter Resource Names" required><br><br>
   </div>
 
   <label for="groups">Groups (comma separated):</label>
-  <input type="text" id="groups" placeholder="Enter Groups"><br><br>
+  <input type="text" id="groups" placeholder="Enter Groups" required><br><br>
 
   <button onclick="generateJSON()">Generate JSON</button>
   <button onclick="downloadJSON()">Download JSON</button>
@@ -46,22 +46,59 @@
     let jsonData = [];
 
     function generateJSON() {
-      const role = document.getElementById('role').value;
+      const role = document.getElementById('role').value.trim();
       const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
+      const subscriptionId = document.getElementById('subscriptionId').value.trim();
+      const resourceGroups = document.getElementById('resourceGroups').value.split(',')
+        .map(rg => rg.trim()).filter(rg => rg !== "");
+      const resources = document.getElementById('resources').value.split(',')
+        .map(res => res.trim()).filter(res => res !== "");
       const groups = document.getElementById('groups').value.split(',')
-        .map(id => id.trim())
-        .filter(id => id !== "");
+        .map(g => g.trim()).filter(g => g !== "");
 
-      let scope = { "SubscriptionId": document.getElementById('subscriptionId').value };
-
-      if (scopeType === 'rg') {
-        scope["ResourceGroupName"] = document.getElementById('resourceGroup').value;
-      } else if (scopeType === 'resource') {
-        scope["ResourceGroupName"] = document.getElementById('resourceGroup').value;
-        scope["ResourceName"] = document.getElementById('resourceName').value;
+      // Validate required fields
+      if (!role || !subscriptionId || groups.length === 0) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+      if ((scopeType === 'rg' || scopeType === 'resource') && resourceGroups.length === 0) {
+        alert("Please enter at least one Resource Group.");
+        return;
+      }
+      if (scopeType === 'resource' && resources.length === 0) {
+        alert("Please enter at least one Resource.");
+        return;
       }
 
-      jsonData = [{ "Scope": scope, "Role": role, "Groups": groups }];
+      let assignments = [];
+
+      if (scopeType === 'subscription') {
+        assignments.push({
+          "Scope": { "SubscriptionId": subscriptionId },
+          "Role": role,
+          "Groups": groups
+        });
+      } else if (scopeType === 'rg') {
+        resourceGroups.forEach(rg => {
+          assignments.push({
+            "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg },
+            "Role": role,
+            "Groups": groups
+          });
+        });
+      } else {
+        resourceGroups.forEach(rg => {
+          resources.forEach(res => {
+            assignments.push({
+              "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res },
+              "Role": role,
+              "Groups": groups
+            });
+          });
+        });
+      }
+
+      jsonData = assignments;
 
       document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
       sendJSONToFunction(jsonData);
