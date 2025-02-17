@@ -8,7 +8,7 @@
 <body>
   <h2>Role Assignment JSON Generator</h2>
 
-  <label for="role">Role Assignment:</label>
+  <label for="role">Role:</label>
   <input type="text" id="role" placeholder="Enter Role (e.g., Reader)"><br><br>
 
   <label>Scope Type:</label><br>
@@ -27,21 +27,15 @@
   <div id="rgInputs" style="display:none;">
     <label for="resourceGroup">Resource Group Name:</label>
     <input type="text" id="resourceGroup" placeholder="Enter Resource Group"><br><br>
-    <label for="rgSubscriptionId">Subscription ID:</label>
-    <input type="text" id="rgSubscriptionId" placeholder="Enter Subscription ID"><br><br>
   </div>
 
   <div id="resourceInputs" style="display:none;">
     <label for="resourceName">Resource Name:</label>
     <input type="text" id="resourceName" placeholder="Enter Resource Name"><br><br>
-    <label for="resResourceGroup">Resource Group Name:</label>
-    <input type="text" id="resResourceGroup" placeholder="Enter Resource Group"><br><br>
-    <label for="resSubscriptionId">Subscription ID:</label>
-    <input type="text" id="resSubscriptionId" placeholder="Enter Subscription ID"><br><br>
   </div>
 
-  <label for="technicalGroups">Technical Groups (comma separated):</label>
-  <input type="text" id="technicalGroups" placeholder="Enter Technical Groups"><br><br>
+  <label for="groups">Groups (comma separated):</label>
+  <input type="text" id="groups" placeholder="Enter Groups"><br><br>
 
   <button onclick="generateJSON()">Generate JSON</button>
   <button onclick="downloadJSON()">Download JSON</button>
@@ -54,31 +48,20 @@
     function generateJSON() {
       const role = document.getElementById('role').value;
       const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
-      const technicalGroups = document.getElementById('technicalGroups').value.split(',')
+      const groups = document.getElementById('groups').value.split(',')
         .map(id => id.trim())
         .filter(id => id !== "");
 
-      let assignment = {
-        "RoleAssignment": role,
-        "TechnicalGroups": technicalGroups
-      };
+      let scope = { "SubscriptionId": document.getElementById('subscriptionId').value };
 
-      if (scopeType === 'subscription') {
-        assignment["SubscriptionId"] = document.getElementById('subscriptionId').value;
-      } else if (scopeType === 'rg') {
-        assignment["SubscriptionId"] = document.getElementById('rgSubscriptionId').value;
-        assignment["ResourceGroups"] = [{
-          "ResourceGroupName": document.getElementById('resourceGroup').value
-        }];
-      } else {
-        assignment["SubscriptionId"] = document.getElementById('resSubscriptionId').value;
-        assignment["Resources"] = [{
-          "ResourceName": document.getElementById('resourceName').value,
-          "ResourceGroupName": document.getElementById('resResourceGroup').value
-        }];
+      if (scopeType === 'rg') {
+        scope["ResourceGroupName"] = document.getElementById('resourceGroup').value;
+      } else if (scopeType === 'resource') {
+        scope["ResourceGroupName"] = document.getElementById('resourceGroup').value;
+        scope["ResourceName"] = document.getElementById('resourceName').value;
       }
 
-      jsonData = [assignment];
+      jsonData = [{ "Scope": scope, "Role": role, "Groups": groups }];
 
       document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
       sendJSONToFunction(jsonData);
@@ -89,31 +72,15 @@
 
       fetch(functionUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error("Network response was not OK");
-        }
-        return response.json();
-      })
+      .then(response => response.json())
       .then(result => {
         console.log("Function response:", result);
         document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
-
-        if (result.message === "No changes detected. Your request is already applied.") {
-          alert("✅ No PR was created because the assignment already exists.");
-        } else {
-          alert("🎉 PR Created: " + result.pr_url);
-        }
       })
-      .catch(error => {
-        console.error("Error sending JSON to Function:", error);
-        alert("❌ Error processing request. Check console for details.");
-      });
+      .catch(error => console.error("Error sending JSON to Function:", error));
     }
 
     function downloadJSON() {
@@ -130,8 +97,8 @@
 
     document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
       radio.addEventListener('change', function() {
-        document.getElementById('subscriptionInputs').style.display = this.value === 'subscription' ? 'block' : 'none';
-        document.getElementById('rgInputs').style.display = this.value === 'rg' ? 'block' : 'none';
+        document.getElementById('subscriptionInputs').style.display = 'block';
+        document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'block' : 'none';
         document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
       });
     });
