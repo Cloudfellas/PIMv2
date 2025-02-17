@@ -4,12 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Role Assignment JSON Generator</title>
+  <style>
+    .error { color: red; font-size: 12px; display: none; }
+  </style>
 </head>
 <body>
   <h2>Role Assignment JSON Generator</h2>
 
   <label for="role">Role:</label>
-  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required><br><br>
+  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+  <div class="error" id="roleError">Role is required.</div>
+  <br><br>
 
   <label>Scope Type:</label><br>
   <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
@@ -21,21 +26,29 @@
 
   <div id="subscriptionInputs">
     <label for="subscriptionId">Subscription ID:</label>
-    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required><br><br>
+    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
+    <div class="error" id="subscriptionError">Subscription ID is required.</div>
+    <br><br>
   </div>
 
   <div id="rgInputs" style="display:none;">
     <label for="resourceGroups">Resource Group Names (comma separated):</label>
-    <input type="text" id="resourceGroups" placeholder="Enter Resource Groups" required><br><br>
+    <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
+    <div class="error" id="rgError">At least one Resource Group is required.</div>
+    <br><br>
   </div>
 
   <div id="resourceInputs" style="display:none;">
     <label for="resources">Resource Names (comma separated):</label>
-    <input type="text" id="resources" placeholder="Enter Resource Names" required><br><br>
+    <input type="text" id="resources" placeholder="Enter Resource Names">
+    <div class="error" id="resourceError">At least one Resource is required.</div>
+    <br><br>
   </div>
 
   <label for="groups">Groups (comma separated):</label>
-  <input type="text" id="groups" placeholder="Enter Groups" required><br><br>
+  <input type="text" id="groups" placeholder="Enter Groups">
+  <div class="error" id="groupsError">At least one Group is required.</div>
+  <br><br>
 
   <button onclick="generateJSON()">Generate JSON</button>
   <button onclick="downloadJSON()">Download JSON</button>
@@ -56,19 +69,25 @@
       const groups = document.getElementById('groups').value.split(',')
         .map(g => g.trim()).filter(g => g !== "");
 
-      // Validate required fields
-      if (!role || !subscriptionId || groups.length === 0) {
-        alert("Please fill in all required fields.");
-        return;
+      let valid = true;
+
+      // Show error messages if required fields are empty
+      function validateField(value, errorId) {
+        if (!value || (Array.isArray(value) && value.length === 0)) {
+          document.getElementById(errorId).style.display = "block";
+          valid = false;
+        } else {
+          document.getElementById(errorId).style.display = "none";
+        }
       }
-      if ((scopeType === 'rg' || scopeType === 'resource') && resourceGroups.length === 0) {
-        alert("Please enter at least one Resource Group.");
-        return;
-      }
-      if (scopeType === 'resource' && resources.length === 0) {
-        alert("Please enter at least one Resource.");
-        return;
-      }
+
+      validateField(role, "roleError");
+      validateField(subscriptionId, "subscriptionError");
+      validateField(groups, "groupsError");
+      if (scopeType !== 'subscription') validateField(resourceGroups, "rgError");
+      if (scopeType === 'resource') validateField(resources, "resourceError");
+
+      if (!valid) return;
 
       let assignments = [];
 
@@ -137,6 +156,16 @@
         document.getElementById('subscriptionInputs').style.display = 'block';
         document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'block' : 'none';
         document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
+      });
+    });
+
+    // Live validation to remove errors when user types
+    document.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", function() {
+        let errorId = this.id + "Error";
+        if (this.value.trim() !== "") {
+          document.getElementById(errorId).style.display = "none";
+        }
       });
     });
   </script>
