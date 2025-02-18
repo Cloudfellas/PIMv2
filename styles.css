@@ -1,100 +1,106 @@
-/* Import corporate styles */
-@import url('https://fonts.googleapis.com/css?family=Helvetica+Neue&display=swap');
-
-/* General Form Styles */
+/* General Styling */
 body {
-    font-family: var(--default-font);
-    font-size: var(--font-size-default);
-    color: #222; /* Adjusted for readability */
-    background-color: var(--apps-item-bg);
+    font-family: "Helvetica Neue", sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
     margin: 0;
-    padding: 2rem;
+    padding: 0;
     display: flex;
     justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
-/* Form Container */
+/* Container */
 .form-container {
-    background: var(--color-white);
-    border-radius: var(--border-radius-default);
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    padding: var(--spacing-default);
-    max-width: 600px;
-    width: 100%;
+    background: #fff;
+    padding: 2rem;
+    width: 400px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
 }
 
 /* Headings */
 h2 {
-    font-family: var(--main-header-font);
-    font-size: var(--header-2-size);
+    font-family: "Hamburg", "Helvetica Neue", sans-serif;
+    font-size: 1.5rem;
+    color: #222;
     text-align: center;
-    color: #333;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Labels */
 label {
-    font-size: var(--font-size-default-small);
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+    font-weight: bold;
     display: block;
+    margin-top: 10px;
 }
 
-/* Inputs & Selects */
-input[type="text"],
-select {
+/* Input Fields */
+input[type="text"] {
     width: 100%;
-    padding: 0.75rem;
-    border: var(--border-style-thin);
-    border-radius: var(--border-radius-default);
-    background-color: var(--panel-bg-tertiary);
-    font-size: var(--font-size-default);
-    margin-bottom: 1rem;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Input Fields Focus */
+input[type="text"]:focus {
+    border-color: #0078D7;
+    box-shadow: 0 0 5px rgba(0, 120, 215, 0.5);
+    outline: none;
 }
 
 /* Radio Buttons */
-input[type="radio"] {
-    margin-right: 0.5rem;
-}
-
-/* Radio Grouping */
 .radio-group {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+input[type="radio"] {
+    margin-right: 5px;
 }
 
 /* Buttons */
 button {
     width: 100%;
-    padding: 0.75rem;
-    background-color: var(--best-shop-primary);
-    border: none;
-    border-radius: var(--border-radius-default);
-    font-size: var(--font-size-default);
+    padding: 10px;
+    margin-top: 15px;
+    font-size: 1rem;
     font-weight: bold;
-    color: var(--color-white);
+    color: white;
+    background: #0078D7;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
-    text-align: center;
+    transition: all 0.2s ease-in-out;
 }
 
 button:hover {
-    background-color: var(--step-1);
+    background: #0056b3;
+}
+
+/* Error Messages */
+.error {
+    color: red;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    display: none;
 }
 
 /* JSON Output */
-pre {
-    background-color: var(--gallery);
-    padding: 1rem;
-    border-radius: var(--border-radius-default);
+pre#jsonOutput {
+    background: #f4f4f4;
+    padding: 10px;
+    border-radius: 5px;
     overflow-x: auto;
-    margin-top: 1rem;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .form-container {
-        width: 90%;
-    }
+    font-size: 0.9rem;
+    margin-top: 15px;
+    max-height: 150px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
