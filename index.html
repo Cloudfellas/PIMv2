@@ -4,56 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Role Assignment JSON Generator</title>
-  <style>
-    .error { color: red; font-size: 12px; display: none; }
-  </style>
+
+  <!-- Link to External CSS File -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h2>Role Assignment JSON Generator</h2>
 
-  <label for="role">Role:</label>
-  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
-  <div class="error" id="roleError">Role is required.</div>
-  <br><br>
+  <div class="form-container">
+    <h2>Role Assignment JSON Generator</h2>
 
-  <label>Scope Type:</label><br>
-  <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
-  <label for="subscriptionLevel">Subscription Level</label>
-  <input type="radio" id="rgLevel" name="scopeType" value="rg">
-  <label for="rgLevel">Resource Group Level</label>
-  <input type="radio" id="resourceLevel" name="scopeType" value="resource">
-  <label for="resourceLevel">Specific Resource Level</label><br><br>
-
-  <div id="subscriptionInputs">
-    <label for="subscriptionId">Subscription ID:</label>
-    <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
-    <div class="error" id="subscriptionError">Subscription ID is required.</div>
+    <label for="role">Role:</label>
+    <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+    <div class="error" id="roleError">Role is required.</div>
     <br><br>
-  </div>
 
-  <div id="rgInputs" style="display:none;">
-    <label for="resourceGroups">Resource Group Names (comma separated):</label>
-    <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
-    <div class="error" id="rgError">At least one Resource Group is required.</div>
+    <label>Scope Type:</label><br>
+    <div class="radio-group">
+      <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
+      <label for="subscriptionLevel">Subscription Level</label>
+      <input type="radio" id="rgLevel" name="scopeType" value="rg">
+      <label for="rgLevel">Resource Group Level</label>
+      <input type="radio" id="resourceLevel" name="scopeType" value="resource">
+      <label for="resourceLevel">Specific Resource Level</label>
+    </div>
+    <br>
+
+    <div id="subscriptionInputs">
+      <label for="subscriptionId">Subscription ID:</label>
+      <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
+      <div class="error" id="subscriptionError">Subscription ID is required.</div>
+      <br><br>
+    </div>
+
+    <div id="rgInputs" style="display:none;">
+      <label for="resourceGroups">Resource Groups (comma-separated):</label>
+      <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
+      <div class="error" id="rgError">At least one Resource Group is required.</div>
+      <br><br>
+    </div>
+
+    <div id="resourceInputs" style="display:none;">
+      <label for="resources">Resources (comma-separated):</label>
+      <input type="text" id="resources" placeholder="Enter Resources">
+      <div class="error" id="resourceError">At least one Resource is required.</div>
+      <br><br>
+    </div>
+
+    <label for="groups">Groups (comma-separated):</label>
+    <input type="text" id="groups" placeholder="Enter Groups">
+    <div class="error" id="groupsError">At least one Group is required.</div>
     <br><br>
+
+    <button onclick="generateJSON()">Generate JSON</button>
+    <button onclick="downloadJSON()">Download JSON</button>
+
+    <pre id="jsonOutput"></pre>
   </div>
-
-  <div id="resourceInputs" style="display:none;">
-    <label for="resources">Resource Names (comma separated):</label>
-    <input type="text" id="resources" placeholder="Enter Resource Names">
-    <div class="error" id="resourceError">At least one Resource is required.</div>
-    <br><br>
-  </div>
-
-  <label for="groups">Groups (comma separated):</label>
-  <input type="text" id="groups" placeholder="Enter Groups">
-  <div class="error" id="groupsError">At least one Group is required.</div>
-  <br><br>
-
-  <button onclick="generateJSON()">Generate JSON</button>
-  <button onclick="downloadJSON()">Download JSON</button>
-
-  <pre id="jsonOutput"></pre>
 
   <script>
     let jsonData = [];
@@ -62,16 +68,12 @@
       const role = document.getElementById('role').value.trim();
       const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
       const subscriptionId = document.getElementById('subscriptionId').value.trim();
-      const resourceGroups = document.getElementById('resourceGroups').value.split(',')
-        .map(rg => rg.trim()).filter(rg => rg !== "");
-      const resources = document.getElementById('resources').value.split(',')
-        .map(res => res.trim()).filter(res => res !== "");
-      const groups = document.getElementById('groups').value.split(',')
-        .map(g => g.trim()).filter(g => g !== "");
+      const resourceGroups = document.getElementById('resourceGroups').value.split(',').map(rg => rg.trim()).filter(rg => rg !== "");
+      const resources = document.getElementById('resources').value.split(',').map(res => res.trim()).filter(res => res !== "");
+      const groups = document.getElementById('groups').value.split(',').map(g => g.trim()).filter(g => g !== "");
 
       let valid = true;
 
-      // Show error messages if required fields are empty
       function validateField(value, errorId) {
         if (!value || (Array.isArray(value) && value.length === 0)) {
           document.getElementById(errorId).style.display = "block";
@@ -118,7 +120,6 @@
       }
 
       jsonData = assignments;
-
       document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
       sendJSONToFunction(jsonData);
     }
@@ -159,7 +160,6 @@
       });
     });
 
-    // Live validation to remove errors when user types
     document.querySelectorAll("input").forEach(input => {
       input.addEventListener("input", function() {
         let errorId = this.id + "Error";
@@ -169,5 +169,6 @@
       });
     });
   </script>
+
 </body>
 </html>
