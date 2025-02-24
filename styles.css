@@ -84,6 +84,16 @@ button:hover {
     background: #0056b3;
 }
 
+/* Submit PR Button - Green */
+#submitPR {
+    display: none;
+    background-color: #28a745;
+}
+
+#submitPR:hover {
+    background-color: #218838;
+}
+
 /* Error Messages */
 .error {
     color: red;
@@ -100,7 +110,16 @@ pre#jsonOutput {
     overflow-x: auto;
     font-size: 0.9rem;
     margin-top: 15px;
-    max-height: 150px;
+    max-height: 200px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    border: 1px solid #ddd;
+}
+
+/* Add spacing between buttons */
+.button-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
 }
