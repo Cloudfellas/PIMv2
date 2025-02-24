@@ -10,37 +10,43 @@
   <div class="form-container">
     <h2>Role Assignment JSON Generator</h2>
 
-    <label for="role">Role:</label>
-    <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+    <div class="form-group">
+      <label for="role">Role:</label>
+      <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+    </div>
     <div class="error" id="roleError">Role is required.</div>
 
-    <label for="scopeType">Scope Type:</label>
-    <select id="scopeType">
-      <option value="subscription">Subscription Level</option>
-      <option value="rg">Resource Group Level</option>
-      <option value="resource">Specific Resource Level</option>
-    </select>
+    <div class="form-group">
+      <label for="scopeType">Scope Type:</label>
+      <select id="scopeType">
+        <option value="subscription">Subscription Level</option>
+        <option value="rg">Resource Group Level</option>
+        <option value="resource">Specific Resource Level</option>
+      </select>
+    </div>
 
-    <div id="subscriptionInputs">
+    <div class="form-group" id="subscriptionInputs">
       <label for="subscriptionId">Subscription ID:</label>
       <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
-      <div class="error" id="subscriptionError">Subscription ID is required.</div>
     </div>
+    <div class="error" id="subscriptionError">Subscription ID is required.</div>
 
-    <div id="rgInputs" style="display:none;">
-      <label for="resourceGroups">Resource Group Names (comma separated):</label>
-      <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
-      <div class="error" id="rgError">At least one Resource Group is required.</div>
+    <div class="form-group" id="rgInputs" style="display:none;">
+      <label for="resourceGroups">Resource Groups:</label>
+      <input type="text" id="resourceGroups" placeholder="Enter Resource Groups (comma separated)">
     </div>
+    <div class="error" id="rgError">At least one Resource Group is required.</div>
 
-    <div id="resourceInputs" style="display:none;">
-      <label for="resources">Resource Names (comma separated):</label>
-      <input type="text" id="resources" placeholder="Enter Resource Names">
-      <div class="error" id="resourceError">At least one Resource is required.</div>
+    <div class="form-group" id="resourceInputs" style="display:none;">
+      <label for="resources">Resources:</label>
+      <input type="text" id="resources" placeholder="Enter Resource Names (comma separated)">
     </div>
+    <div class="error" id="resourceError">At least one Resource is required.</div>
 
-    <label for="groups">Groups (comma separated):</label>
-    <input type="text" id="groups" placeholder="Enter Groups">
+    <div class="form-group">
+      <label for="groups">Groups:</label>
+      <input type="text" id="groups" placeholder="Enter Groups (comma separated)">
+    </div>
     <div class="error" id="groupsError">At least one Group is required.</div>
 
     <button onclick="generateJSON()">Generate JSON</button>
@@ -65,7 +71,6 @@
 
       let valid = true;
 
-      // Show error messages if required fields are empty
       function validateField(value, errorId) {
         if (!value || (Array.isArray(value) && value.length === 0)) {
           document.getElementById(errorId).style.display = "block";
@@ -112,52 +117,14 @@
       }
 
       jsonData = assignments;
-
       document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-      document.getElementById('submitPRButton').style.display = "block"; // Show Submit PR button
+      document.getElementById('submitPRButton').style.display = "block";
     }
 
-    function submitPR() {
-      if (jsonData.length === 0) {
-        alert("Please generate JSON first.");
-        return;
-      }
-
-      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
-
-      fetch(functionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(jsonData)
-      })
-      .then(response => response.json())
-      .then(result => {
-        console.log("Function response:", result);
-        if (result.message.includes("No changes detected")) {
-          alert("No changes detected. Your assignment already exists.");
-        } else {
-          document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
-          alert("Pull Request Created: " + result.pr_url);
-        }
-      })
-      .catch(error => console.error("Error sending JSON to Function:", error));
-    }
-
-    // Toggle input visibility based on the selected scope type
     document.getElementById('scopeType').addEventListener('change', function() {
-      document.getElementById('subscriptionInputs').style.display = 'block';
-      document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'block' : 'none';
-      document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
-    });
-
-    // Live validation to remove errors when user types
-    document.querySelectorAll("input").forEach(input => {
-      input.addEventListener("input", function() {
-        let errorId = this.id + "Error";
-        if (this.value.trim() !== "") {
-          document.getElementById(errorId).style.display = "none";
-        }
-      });
+      document.getElementById('subscriptionInputs').style.display = 'flex';
+      document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'flex' : 'none';
+      document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'flex' : 'none';
     });
   </script>
 </body>
