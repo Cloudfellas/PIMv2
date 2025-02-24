@@ -7,164 +7,93 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<div class="form-container">
   <h2>Role Assignment JSON Generator</h2>
 
-  <label for="role">Role:</label>
-  <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
-  <div class="error" id="roleError">Role is required.</div>
-  <br><br>
+  <div class="form-group">
+    <label for="role">Role:</label>
+    <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+    <div class="error" id="roleError">Role is required.</div>
+  </div>
 
-  <label>Scope Type:</label><br>
-  <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
-  <label for="subscriptionLevel">Subscription Level</label>
-  <input type="radio" id="rgLevel" name="scopeType" value="rg">
-  <label for="rgLevel">Resource Group Level</label>
-  <input type="radio" id="resourceLevel" name="scopeType" value="resource">
-  <label for="resourceLevel">Specific Resource Level</label><br><br>
+  <div class="form-group">
+    <label>Scope Type:</label>
+    <div class="radio-group">
+      <input type="radio" id="subscriptionLevel" name="scopeType" value="subscription" checked>
+      <label for="subscriptionLevel">Subscription</label>
 
-  <div id="subscriptionInputs">
+      <input type="radio" id="rgLevel" name="scopeType" value="rg">
+      <label for="rgLevel">Resource Group</label>
+
+      <input type="radio" id="resourceLevel" name="scopeType" value="resource">
+      <label for="resourceLevel">Resource</label>
+    </div>
+  </div>
+
+  <div class="form-group">
     <label for="subscriptionId">Subscription ID:</label>
     <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
     <div class="error" id="subscriptionError">Subscription ID is required.</div>
-    <br><br>
   </div>
 
-  <div id="rgInputs" style="display:none;">
-    <label for="resourceGroups">Resource Group Names (comma separated):</label>
-    <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
-    <div class="error" id="rgError">At least one Resource Group is required.</div>
-    <br><br>
+  <div class="form-group">
+    <label for="groups">Groups (comma separated):</label>
+    <input type="text" id="groups" placeholder="Enter Groups">
+    <div class="error" id="groupsError">At least one Group is required.</div>
   </div>
 
-  <div id="resourceInputs" style="display:none;">
-    <label for="resources">Resource Names (comma separated):</label>
-    <input type="text" id="resources" placeholder="Enter Resource Names">
-    <div class="error" id="resourceError">At least one Resource is required.</div>
-    <br><br>
+  <div class="button-container">
+    <button onclick="generateJSON()">Generate JSON</button>
+    <button id="submitPR" onclick="submitPR()">Submit PR</button>
   </div>
-
-  <label for="groups">Groups (comma separated):</label>
-  <input type="text" id="groups" placeholder="Enter Groups">
-  <div class="error" id="groupsError">At least one Group is required.</div>
-  <br><br>
-
-  <button onclick="generateJSON()">Generate JSON</button>
-  <button id="submitPR" onclick="submitPR()" style="display: none;">Submit PR</button>
 
   <pre id="jsonOutput"></pre>
+</div>
 
-  <script>
-    let jsonData = [];
+<script>
+  function generateJSON() {
+    const role = document.getElementById('role').value.trim();
+    const subscriptionId = document.getElementById('subscriptionId').value.trim();
+    const groups = document.getElementById('groups').value.split(',').map(g => g.trim()).filter(g => g !== "");
 
-    function generateJSON() {
-      const role = document.getElementById('role').value.trim();
-      const scopeType = document.querySelector('input[name="scopeType"]:checked').value;
-      const subscriptionId = document.getElementById('subscriptionId').value.trim();
-      const resourceGroups = document.getElementById('resourceGroups').value.split(',')
-        .map(rg => rg.trim()).filter(rg => rg !== "");
-      const resources = document.getElementById('resources').value.split(',')
-        .map(res => res.trim()).filter(res => res !== "");
-      const groups = document.getElementById('groups').value.split(',')
-        .map(g => g.trim()).filter(g => g !== "");
-
-      let valid = true;
-
-      // Show error messages if required fields are empty
-      function validateField(value, errorId) {
-        if (!value || (Array.isArray(value) && value.length === 0)) {
-          document.getElementById(errorId).style.display = "block";
-          valid = false;
-        } else {
-          document.getElementById(errorId).style.display = "none";
-        }
-      }
-
-      validateField(role, "roleError");
-      validateField(subscriptionId, "subscriptionError");
-      validateField(groups, "groupsError");
-      if (scopeType !== 'subscription') validateField(resourceGroups, "rgError");
-      if (scopeType === 'resource') validateField(resources, "resourceError");
-
-      if (!valid) return;
-
-      let assignments = [];
-
-      if (scopeType === 'subscription') {
-        assignments.push({
-          "Scope": { "SubscriptionId": subscriptionId },
-          "Role": role,
-          "Groups": groups
-        });
-      } else if (scopeType === 'rg') {
-        resourceGroups.forEach(rg => {
-          assignments.push({
-            "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg },
-            "Role": role,
-            "Groups": groups
-          });
-        });
-      } else {
-        resourceGroups.forEach(rg => {
-          resources.forEach(res => {
-            assignments.push({
-              "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res },
-              "Role": role,
-              "Groups": groups
-            });
-          });
-        });
-      }
-
-      jsonData = assignments;
-
-      document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-
-      // ✅ Show "Submit PR" button
-      document.getElementById('submitPR').style.display = "inline-block";
+    if (!role || !subscriptionId || groups.length === 0) {
+      alert("Please fill in all required fields.");
+      return;
     }
 
-    function submitPR() {
-      if (jsonData.length === 0) {
-        alert("Please generate JSON before submitting a PR.");
-        return;
-      }
+    const jsonData = [{
+      "Scope": { "SubscriptionId": subscriptionId },
+      "Role": role,
+      "Groups": groups
+    }];
 
-      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+    document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+    document.getElementById('submitPR').style.display = "block";
+  }
 
-      fetch(functionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(jsonData)
-      })
-      .then(response => response.json())
-      .then(result => {
-        console.log("Function response:", result);
-        document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
-        alert("PR has been submitted!");
-      })
-      .catch(error => {
-        console.error("Error sending JSON to Function:", error);
-        alert("Error submitting PR.");
-      });
+  function submitPR() {
+    const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+    const jsonData = document.getElementById('jsonOutput').textContent;
+
+    if (!jsonData) {
+      alert("Generate JSON first!");
+      return;
     }
 
-    document.querySelectorAll('input[name="scopeType"]').forEach(radio => {
-      radio.addEventListener('change', function() {
-        document.getElementById('subscriptionInputs').style.display = 'block';
-        document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'block' : 'none';
-        document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'block' : 'none';
-      });
-    });
+    fetch(functionUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonData
+    })
+    .then(response => response.json())
+    .then(result => {
+      console.log("Function response:", result);
+      alert("PR Submitted: " + (result.pr_url || "Error"));
+    })
+    .catch(error => console.error("Error sending JSON to Function:", error));
+  }
+</script>
 
-    // Live validation to remove errors when user types
-    document.querySelectorAll("input").forEach(input => {
-      input.addEventListener("input", function() {
-        let errorId = this.id + "Error";
-        if (this.value.trim() !== "") {
-          document.getElementById(errorId).style.display = "none";
-        }
-      });
-    });
-  </script>
 </body>
 </html>

@@ -4,7 +4,7 @@ body {
     background-color: #f4f4f4;
     color: #333;
     margin: 0;
-    padding: 20px;
+    padding: 40px;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -36,6 +36,7 @@ h2 {
 .form-group {
     width: 100%;
     margin-bottom: 15px;
+    text-align: left;
 }
 
 label {
@@ -64,7 +65,8 @@ input[type="text"]:focus {
 /* Radio Button Group */
 .radio-group {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 10px;
 }
@@ -80,6 +82,7 @@ input[type="text"]:focus {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    align-items: center;
 }
 
 button {
