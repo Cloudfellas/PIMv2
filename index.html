@@ -74,10 +74,10 @@
 
   function submitPR() {
     const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
-    const jsonData = document.getElementById('jsonOutput').textContent;
+    const jsonData = document.getElementById('jsonOutput').textContent.trim();
 
     if (!jsonData) {
-      alert("Generate JSON first!");
+      alert("❌ No JSON found. Please generate JSON first.");
       return;
     }
 
@@ -88,11 +88,20 @@
     })
     .then(response => response.json())
     .then(result => {
-      console.log("Function response:", result);
-      alert("PR Submitted: " + (result.pr_url || "Error"));
+      if (result.message.includes("No changes detected")) {
+        alert("✅ No changes needed! Your assignment already exists.");
+      } else if (result.pr_url) {
+        alert(`🚀 PR Submitted Successfully!\n\nView PR: ${result.pr_url}`);
+      } else {
+        alert("⚠️ Unexpected response from server.");
+      }
     })
-    .catch(error => console.error("Error sending JSON to Function:", error));
+    .catch(error => {
+      console.error("❌ Error sending JSON to Function:", error);
+      alert("❌ Error submitting PR. Please check the console for details.");
+    });
   }
+
 </script>
 
 </body>
