@@ -1,209 +1,193 @@
-import { Octokit } from "@octokit/rest";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Assignment JSON Generator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Role Assignment JSON Generator</h2>
 
-export default async function (context, req) {
-  const GITHUB_ORG = "Cloudfellas";
-  const REPO_NAME = "pimv2-backend";
-  const BRANCH_PREFIX = "role-assignment-";
+    <!-- Role Input -->
+    <div class="form-group">
+      <label for="role">Role:</label>
+      <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+    </div>
+    <div class="error" id="roleError">Role is required.</div>
 
-  const GITHUB_PAT = process.env.GITHUB_PAT;
-  if (!GITHUB_PAT) {
-    console.error("❌ ERROR: GITHUB_PAT is missing!");
-    context.res = {
-      status: 500,
-      body: "Error: GitHub PAT is missing in Azure Function settings.",
-    };
-    return;
-  }
+    <!-- Assignment Type Dropdown (Permanent / PIM) -->
+    <div class="form-group">
+      <label for="assignmentType">Assignment Type:</label>
+      <select id="assignmentType">
+        <option value="Permanent">Permanent</option>
+        <option value="PIM">Privileged (PIM)</option>
+      </select>
+    </div>
 
-  console.log("✅ GITHUB_PAT is loaded successfully.");
-  const octokit = new Octokit({ auth: GITHUB_PAT });
+    <!-- Scope Type Dropdown -->
+    <div class="form-group">
+      <label for="scopeType">Scope Type:</label>
+      <select id="scopeType">
+        <option value="subscription">Subscription Level</option>
+        <option value="rg">Resource Group Level</option>
+        <option value="resource">Specific Resource Level</option>
+      </select>
+    </div>
 
-  let payload = req.body;
-  if (!Array.isArray(payload)) {
-    context.res = { status: 400, body: "Invalid JSON payload. Expected an array." };
-    return;
-  }
+    <!-- Subscription ID Input -->
+    <div class="form-group" id="subscriptionInputs">
+      <label for="subscriptionId">Subscription ID:</label>
+      <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
+    </div>
+    <div class="error" id="subscriptionError">Subscription ID is required.</div>
 
-  let changesMade = false;
+    <!-- Resource Group Input (Hidden Initially) -->
+    <div class="form-group" id="rgInputs" style="display:none;">
+      <label for="resourceGroups">Resource Groups:</label>
+      <input type="text" id="resourceGroups" placeholder="Enter Resource Groups (comma separated)">
+    </div>
+    <div class="error" id="rgError">At least one Resource Group is required.</div>
 
-  for (const assignment of payload) {
-    const { Scope, Role, Groups, AssignmentType = "Permanent" } = assignment; // Default to "Permanent"
-    const { SubscriptionId, ResourceGroupName, ResourceName } = Scope;
+    <!-- Resource Input (Hidden Initially) -->
+    <div class="form-group" id="resourceInputs" style="display:none;">
+      <label for="resources">Resources:</label>
+      <input type="text" id="resources" placeholder="Enter Resource Names (comma separated)">
+    </div>
+    <div class="error" id="resourceError">At least one Resource is required.</div>
 
-    // ✅ Determine correct folder structure
-    let folderPath = `assignments/${SubscriptionId}`;
-    if (ResourceGroupName) {
-      folderPath += `/${ResourceGroupName}`;
-    }
-    if (ResourceName) {
-      folderPath += `/${ResourceName}`;
-    }
+    <!-- Groups Input -->
+    <div class="form-group">
+      <label for="groups">Groups:</label>
+      <input type="text" id="groups" placeholder="Enter Groups (comma separated)">
+    </div>
+    <div class="error" id="groupsError">At least one Group is required.</div>
 
-    // ✅ Determine correct file based on Assignment Type
-    let assignmentFile = AssignmentType === "PIM" ? "roleassignments_PIM.json" : "roleassignments_permanent.json";
-    const filePath = `${folderPath}/${assignmentFile}`;
+    <!-- Buttons -->
+    <button onclick="generateJSON()">Generate JSON</button>
+    <button id="submitPRButton" onclick="submitPR()" style="display:none; background-color: green;">Submit PR</button>
 
-    let existingData = { Assignments: [] };
+    <!-- JSON Output -->
+    <pre id="jsonOutput"></pre>
+  </div>
 
-    // ✅ Ensure folder structure exists
-    async function ensureFolderExists(path) {
-      try {
-        await octokit.repos.getContent({
-          owner: GITHUB_ORG,
-          repo: REPO_NAME,
-          path,
-        });
-      } catch (error) {
-        if (error.status === 404) {
-          console.log(`🔹 Creating folder: ${path}`);
-          await octokit.repos.createOrUpdateFileContents({
-            owner: GITHUB_ORG,
-            repo: REPO_NAME,
-            path: `${path}/.keep`, // Create a hidden file to ensure folder exists
-            message: `Create folder ${path}`,
-            content: Buffer.from("").toString("base64"),
-            branch: "main",
-          });
+  <script>
+    let jsonData = [];
+
+    function generateJSON() {
+      const role = document.getElementById('role').value.trim();
+      const assignmentType = document.getElementById('assignmentType').value;
+      const scopeType = document.getElementById('scopeType').value;
+      const subscriptionId = document.getElementById('subscriptionId').value.trim();
+      const resourceGroups = document.getElementById('resourceGroups').value.split(',')
+        .map(rg => rg.trim()).filter(rg => rg !== "");
+      const resources = document.getElementById('resources').value.split(',')
+        .map(res => res.trim()).filter(res => res !== "");
+      const groups = document.getElementById('groups').value.split(',')
+        .map(g => g.trim()).filter(g => g !== "");
+
+      let valid = true;
+
+      function validateField(value, errorId) {
+        if (!value || (Array.isArray(value) && value.length === 0)) {
+          document.getElementById(errorId).style.display = "block";
+          valid = false;
         } else {
-          throw error;
+          document.getElementById(errorId).style.display = "none";
         }
       }
+
+      validateField(role, "roleError");
+      validateField(subscriptionId, "subscriptionError");
+      validateField(groups, "groupsError");
+      if (scopeType !== 'subscription') validateField(resourceGroups, "rgError");
+      if (scopeType === 'resource') validateField(resources, "resourceError");
+
+      if (!valid) return;
+
+      let assignments = [];
+
+      if (scopeType === 'subscription') {
+        assignments.push({
+          "Scope": { "SubscriptionId": subscriptionId },
+          "Role": role,
+          "Groups": groups,
+          "AssignmentType": assignmentType
+        });
+      } else if (scopeType === 'rg') {
+        resourceGroups.forEach(rg => {
+          assignments.push({
+            "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg },
+            "Role": role,
+            "Groups": groups,
+            "AssignmentType": assignmentType
+          });
+        });
+      } else {
+        resourceGroups.forEach(rg => {
+          resources.forEach(res => {
+            assignments.push({
+              "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res },
+              "Role": role,
+              "Groups": groups,
+              "AssignmentType": assignmentType
+            });
+          });
+        });
+      }
+
+      jsonData = assignments;
+      document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+      document.getElementById('submitPRButton').style.display = "block";
     }
 
-    // 🔧 Ensure parent folders exist
-    await ensureFolderExists(`assignments/${SubscriptionId}`);
-    if (ResourceGroupName) {
-      await ensureFolderExists(`assignments/${SubscriptionId}/${ResourceGroupName}`);
-    }
-    if (ResourceName) {
-      await ensureFolderExists(folderPath);
-    }
-
-    // ✅ Load existing assignments if they exist
-    try {
-      const { data: existingFile } = await octokit.repos.getContent({
-        owner: GITHUB_ORG,
-        repo: REPO_NAME,
-        path: filePath,
-      });
-
-      existingData = JSON.parse(Buffer.from(existingFile.content, "base64").toString("utf-8"));
-    } catch (error) {
-      if (error.status !== 404) {
-        console.error("❌ Error fetching existing file:", error.message);
-        context.res = { status: 500, body: "Error fetching existing assignments." };
+    function submitPR() {
+      if (jsonData.length === 0) {
+        alert("❌ No JSON generated. Please generate JSON before submitting.");
         return;
       }
-      console.log(`🔹 No existing assignments found for ${filePath}, creating new.`);
+
+      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+
+      fetch(functionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        console.log("Function response:", result);
+
+        if (result.pr_url) {
+          alert("✅ PR Created Successfully!\n" + result.pr_url);
+          return;
+        }
+
+        if (result.message.includes("No changes detected")) {
+          alert("ℹ️ No changes detected. Your request is already applied.");
+          return;
+        }
+
+        if (result.message.includes("already exists") || result.message.includes("duplicate")) {
+          alert("⚠️ This assignment already exists and does not need a new PR.");
+          return;
+        }
+
+        alert("❌ PR Creation Failed! Check console for details.");
+      })
+      .catch(error => {
+        console.error("❌ Error sending JSON to Function:", error);
+        alert("❌ PR Creation Failed! Check console for details.");
+      });
     }
 
-    // ✅ Prevent Duplicate Assignments & Merge Groups
-    function mergeAssignments(existingData, newAssignment) {
-      const { Role, Groups } = newAssignment;
+    document.getElementById('scopeType').addEventListener('change', function() {
+      document.getElementById('subscriptionInputs').style.display = 'flex';
+      document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'flex' : 'none';
+      document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'flex' : 'none';
+    });
 
-      // Find if a role already exists
-      let existingAssignment = existingData.Assignments.find((entry) => entry.Role === Role);
-
-      if (existingAssignment) {
-        console.log(`🔹 Merging groups into existing assignment for Role: ${Role}`);
-
-        // Merge the groups (remove duplicates)
-        existingAssignment.Groups = Array.from(new Set([...existingAssignment.Groups, ...Groups]));
-        return false; // No need for PR if merging existing data
-      } else {
-        console.log(`✅ New assignment detected, adding to list.`);
-        existingData.Assignments.push(newAssignment);
-        return true;
-      }
-    }
-
-    let isNewAssignment = mergeAssignments(existingData, { Role, Groups });
-    if (!isNewAssignment) {
-      console.log(`ℹ️ Assignment already exists. Skipping PR.`);
-      continue;
-    }
-
-    // ✅ Save Changes
-    const fileContent = Buffer.from(JSON.stringify(existingData, null, 4)).toString("base64");
-
-    try {
-      console.log("🔹 Creating PR with GitHub API...");
-
-      const { data: repoData } = await octokit.repos.get({
-        owner: GITHUB_ORG,
-        repo: REPO_NAME,
-      });
-      const defaultBranch = repoData.default_branch;
-
-      const { data: mainBranch } = await octokit.repos.getBranch({
-        owner: GITHUB_ORG,
-        repo: REPO_NAME,
-        branch: defaultBranch,
-      });
-      const mainBranchSHA = mainBranch.commit.sha;
-
-      const branchName = `${BRANCH_PREFIX}${Date.now()}`;
-      await octokit.git.createRef({
-        owner: GITHUB_ORG,
-        repo: REPO_NAME,
-        ref: `refs/heads/${branchName}`,
-        sha: mainBranchSHA,
-      });
-
-      // Check if file exists
-      let fileSha = null;
-      try {
-        const { data: existingFile } = await octokit.repos.getContent({
-          owner: GITHUB_ORG,
-          repo: REPO_NAME,
-          path: filePath,
-          ref: branchName,
-        });
-        fileSha = existingFile.sha;
-      } catch (error) {
-        if (error.status !== 404) throw error;
-      }
-
-      // ✅ Commit changes
-      await octokit.repos.createOrUpdateFileContents({
-        owner: GITHUB_ORG,
-        repo: REPO_NAME,
-        path: filePath,
-        message: `Update ${AssignmentType} role assignments for ${filePath}`,
-        content: fileContent,
-        branch: branchName,
-        ...(fileSha ? { sha: fileSha } : {}),
-      });
-
-      // ✅ Create PR
-      const prTitle = `Updated ${AssignmentType} Role Assignments for ${filePath}`;
-      const prBody = `This PR updates **${AssignmentType}** assignments in **${filePath}**.\n\nChanges:\n- Role assignments modified or added.`;
-
-      const { data: pr } = await octokit.pulls.create({
-        owner: GITHUB_ORG,
-        repo: REPO_NAME,
-        title: prTitle,
-        head: branchName,
-        base: defaultBranch,
-        body: prBody,
-      });
-
-      console.log("✅ PR Created:", pr.html_url);
-      changesMade = true;
-    } catch (error) {
-      console.error("❌ GitHub API Error:", error.response?.data || error.message);
-      context.res = {
-        status: 500,
-        body: `GitHub API Error: ${error.response?.data?.message || error.message}`,
-      };
-      return;
-    }
-  }
-
-  if (!changesMade) {
-    context.res = {
-      status: 200,
-      body: { message: "No changes detected, PR skipped." },
-    };
-  }
-}
+  </script>
+</body>
+</html>
