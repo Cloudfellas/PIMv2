@@ -1,107 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Role Assignment JSON Generator</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Assignment JSON Generator</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="form-container">
-        <h2>Role Assignment JSON Generator</h2>
+  <div class="form-container">
+    <h2>Role Assignment JSON Generator</h2>
 
-        <label for="role">Role:</label>
-        <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
-        <div class="error" id="roleError">Role is required.</div>
-
-        <label for="scopeType">Scope Type:</label>
-        <select id="scopeType">
-            <option value="subscription">Subscription Level</option>
-            <option value="rg">Resource Group Level</option>
-            <option value="resource">Specific Resource Level</option>
-        </select>
-
-        <label for="subscriptionId">Subscription ID:</label>
-        <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
-        <div class="error" id="subscriptionError">Subscription ID is required.</div>
-
-        <div id="rgInputs" style="display:none;">
-            <label for="resourceGroups">Resource Group Names (comma separated):</label>
-            <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
-        </div>
-
-        <div id="resourceInputs" style="display:none;">
-            <label for="resources">Resource Names (comma separated):</label>
-            <input type="text" id="resources" placeholder="Enter Resource Names">
-        </div>
-
-        <label for="groups">Groups (comma separated):</label>
-        <input type="text" id="groups" placeholder="Enter Groups">
-        <div class="error" id="groupsError">At least one Group is required.</div>
-
-        <label for="assignmentType">Assignment Type:</label>
-        <select id="assignmentType">
-            <option value="Permanent" selected>Permanent</option>
-            <option value="PIM">PIM</option>
-        </select>
-
-        <button onclick="generateJSON()">Generate JSON</button>
-        <button id="submitPR" style="display:none;" onclick="submitPR()">Submit PR</button>
-
-        <pre id="jsonOutput"></pre>
+    <div class="form-group">
+      <label for="role">Role:</label>
+      <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
+      <div class="error" id="roleError">Role is required.</div>
     </div>
 
-    <script>
-        let jsonData = [];
+    <div class="form-group">
+      <label for="assignmentType">Assignment Type:</label>
+      <select id="assignmentType">
+        <option value="Permanent">Permanent</option>
+        <option value="PIM">PIM</option>
+      </select>
+    </div>
 
-        function generateJSON() {
-            const role = document.getElementById('role').value.trim();
-            const scopeType = document.getElementById('scopeType').value;
-            const subscriptionId = document.getElementById('subscriptionId').value.trim();
-            const resourceGroups = document.getElementById('resourceGroups').value.split(',').map(rg => rg.trim()).filter(rg => rg !== "");
-            const resources = document.getElementById('resources').value.split(',').map(res => res.trim()).filter(res => res !== "");
-            const groups = document.getElementById('groups').value.split(',').map(g => g.trim()).filter(g => g !== "");
-            const assignmentType = document.getElementById('assignmentType').value;
+    <div class="form-group">
+      <label for="scopeType">Scope Type:</label>
+      <select id="scopeType">
+        <option value="subscription">Subscription Level</option>
+        <option value="rg">Resource Group Level</option>
+        <option value="resource">Specific Resource Level</option>
+      </select>
+    </div>
 
-            if (!role || !subscriptionId || groups.length === 0) {
-                alert("Please fill all required fields.");
-                return;
-            }
+    <div class="form-group">
+      <label for="subscriptionId">Subscription ID:</label>
+      <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
+      <div class="error" id="subscriptionError">Subscription ID is required.</div>
+    </div>
 
-            let assignments = [];
-            if (scopeType === 'subscription') {
-                assignments.push({ "Scope": { "SubscriptionId": subscriptionId }, "Role": role, "Groups": groups, "AssignmentType": assignmentType });
-            } else if (scopeType === 'rg') {
-                resourceGroups.forEach(rg => {
-                    assignments.push({ "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg }, "Role": role, "Groups": groups, "AssignmentType": assignmentType });
-                });
-            } else {
-                resourceGroups.forEach(rg => {
-                    resources.forEach(res => {
-                        assignments.push({ "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res }, "Role": role, "Groups": groups, "AssignmentType": assignmentType });
-                    });
-                });
-            }
+    <div id="rgInputs" class="form-group hidden">
+      <label for="resourceGroups">Resource Group Names (comma separated):</label>
+      <input type="text" id="resourceGroups" placeholder="Enter Resource Groups">
+      <div class="error" id="rgError">At least one Resource Group is required.</div>
+    </div>
 
-            jsonData = assignments;
-            document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-            document.getElementById('submitPR').style.display = "block";
+    <div id="resourceInputs" class="form-group hidden">
+      <label for="resources">Resource Names (comma separated):</label>
+      <input type="text" id="resources" placeholder="Enter Resource Names">
+      <div class="error" id="resourceError">At least one Resource is required.</div>
+    </div>
+
+    <div class="form-group">
+      <label for="groups">Groups (comma separated):</label>
+      <input type="text" id="groups" placeholder="Enter Groups">
+      <div class="error" id="groupsError">At least one Group is required.</div>
+    </div>
+
+    <button onclick="generateJSON()">Generate JSON</button>
+    <pre id="jsonOutput"></pre>
+    <button id="submitPR" class="hidden" onclick="submitPR()">Submit PR</button>
+  </div>
+
+  <script>
+    let jsonData = [];
+
+    function generateJSON() {
+      const role = document.getElementById('role').value.trim();
+      const assignmentType = document.getElementById('assignmentType').value;
+      const scopeType = document.getElementById('scopeType').value;
+      const subscriptionId = document.getElementById('subscriptionId').value.trim();
+      const resourceGroups = document.getElementById('resourceGroups').value.split(',')
+        .map(rg => rg.trim()).filter(rg => rg !== "");
+      const resources = document.getElementById('resources').value.split(',')
+        .map(res => res.trim()).filter(res => res !== "");
+      const groups = document.getElementById('groups').value.split(',')
+        .map(g => g.trim()).filter(g => g !== "");
+
+      let valid = true;
+
+      function validateField(value, errorId) {
+        if (!value || (Array.isArray(value) && value.length === 0)) {
+          document.getElementById(errorId).style.display = "block";
+          valid = false;
+        } else {
+          document.getElementById(errorId).style.display = "none";
         }
+      }
 
-        function submitPR() {
-            const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
-            fetch(functionUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(jsonData)
-            })
-            .then(response => response.json())
-            .then(result => {
-                console.log("Function response:", result);
-                document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
-            })
-            .catch(error => console.error("Error sending JSON to Function:", error));
+      validateField(role, "roleError");
+      validateField(subscriptionId, "subscriptionError");
+      validateField(groups, "groupsError");
+      if (scopeType !== 'subscription') validateField(resourceGroups, "rgError");
+      if (scopeType === 'resource') validateField(resources, "resourceError");
+
+      if (!valid) return;
+
+      let assignments = [];
+
+      if (scopeType === 'subscription') {
+        assignments.push({
+          "Scope": { "SubscriptionId": subscriptionId },
+          "Role": role,
+          "Groups": groups,
+          "AssignmentType": assignmentType
+        });
+      } else if (scopeType === 'rg') {
+        resourceGroups.forEach(rg => {
+          assignments.push({
+            "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg },
+            "Role": role,
+            "Groups": groups,
+            "AssignmentType": assignmentType
+          });
+        });
+      } else {
+        resourceGroups.forEach(rg => {
+          resources.forEach(res => {
+            assignments.push({
+              "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res },
+              "Role": role,
+              "Groups": groups,
+              "AssignmentType": assignmentType
+            });
+          });
+        });
+      }
+
+      jsonData = assignments;
+      document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+      document.getElementById('submitPR').classList.remove('hidden');
+    }
+
+    function submitPR() {
+      if (jsonData.length === 0) {
+        alert("Please generate JSON first");
+        return;
+      }
+
+      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+
+      fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsonData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        console.log("Function response:", result);
+        alert(result.message || "PR Submitted Successfully!");
+      })
+      .catch(error => console.error("Error sending JSON to Function:", error));
+    }
+
+    document.getElementById('scopeType').addEventListener('change', function() {
+      document.getElementById('rgInputs').classList.toggle('hidden', this.value === 'subscription');
+      document.getElementById('resourceInputs').classList.toggle('hidden', this.value !== 'resource');
+    });
+
+    document.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", function() {
+        let errorId = this.id + "Error";
+        if (this.value.trim() !== "") {
+          document.getElementById(errorId).style.display = "none";
         }
-    </script>
+      });
+    });
+  </script>
 </body>
 </html>
