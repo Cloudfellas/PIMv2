@@ -150,17 +150,26 @@
       .then(result => {
         console.log("Function response:", result);
 
+        // Ensure PR URL is valid
         if (result.pr_url) {
-          alert("✅ PR Created: " + result.pr_url);
-        } else {
-          alert("ℹ️ No changes detected, PR was not created.");
-        }
+          document.getElementById('jsonOutput').textContent +=
+            "\n\n✅ PR Successfully Created:\n" + result.pr_url;
 
-        document.getElementById('jsonOutput').textContent += "\n\nFunction Response:\n" + JSON.stringify(result, null, 4);
+          // Show success message in a controlled way
+          setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
+        } else {
+          document.getElementById('jsonOutput').textContent +=
+            "\n\nℹ️ No changes detected. PR was not created.";
+
+          setTimeout(() => alert("ℹ️ No changes detected, PR was not created."), 500);
+        }
       })
       .catch(error => {
         console.error("❌ Error sending JSON to Function:", error);
-        alert("❌ Failed to create PR. Check console for details.");
+        document.getElementById('jsonOutput').textContent +=
+          "\n\n❌ Failed to create PR. Check the console for details.";
+
+        setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
       });
     }
 
