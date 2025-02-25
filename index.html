@@ -43,14 +43,14 @@
     </div>
     <div class="error" id="subscriptionError">Subscription ID is required.</div>
 
-    <!-- Resource Group Input (Hidden by Default) -->
+    <!-- Resource Group Input -->
     <div class="form-group" id="rgInputs" style="display:none;">
       <label for="resourceGroups">Resource Groups:</label>
       <input type="text" id="resourceGroups" placeholder="Enter Resource Groups (comma separated)">
     </div>
     <div class="error" id="rgError">At least one Resource Group is required.</div>
 
-    <!-- Resource Input (Hidden by Default) -->
+    <!-- Resource Input -->
     <div class="form-group" id="resourceInputs" style="display:none;">
       <label for="resources">Resources:</label>
       <input type="text" id="resources" placeholder="Enter Resource Names (comma separated)">
@@ -66,7 +66,7 @@
 
     <!-- Buttons -->
     <button onclick="generateJSON()">Generate JSON</button>
-    <button id="submitPRButton" onclick="submitPR()" style="display:none;">Submit PR</button>
+    <button id="submitPRButton" onclick="submitPR()" style="display:none; background-color: green;">Submit PR</button>
 
     <!-- JSON Output -->
     <pre id="jsonOutput"></pre>
@@ -159,21 +159,19 @@
       .then(result => {
         console.log("Function response:", result);
 
-        if (result.message) {
-          if (result.pr_url) {
-            alert("✅ PR Created Successfully!\n" + result.pr_url);
-            return;
-          }
+        if (result.pr_url) {
+          alert("✅ PR Created Successfully!\n" + result.pr_url);
+          return;
+        }
 
-          if (result.message.includes("No changes detected")) {
-            alert("ℹ️ No changes detected. Your request is already applied.");
-            return;
-          }
+        if (result.message.includes("No changes detected")) {
+          alert("ℹ️ No changes detected. Your request is already applied.");
+          return;
+        }
 
-          if (result.message.includes("already exists") || result.message.includes("duplicate")) {
-            alert("⚠️ This assignment already exists and does not need a new PR.");
-            return;
-          }
+        if (result.message.includes("already exists") || result.message.includes("duplicate")) {
+          alert("⚠️ This assignment already exists and does not need a new PR.");
+          return;
         }
 
         alert("❌ PR Creation Failed! Check console for details.");
