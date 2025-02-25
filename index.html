@@ -10,12 +10,14 @@
   <div class="form-container">
     <h2>Role Assignment JSON Generator</h2>
 
+    <!-- Role Input -->
     <div class="form-group">
       <label for="role">Role:</label>
       <input type="text" id="role" placeholder="Enter Role (e.g., Reader)" required>
     </div>
     <div class="error" id="roleError">Role is required.</div>
 
+    <!-- Assignment Type Dropdown -->
     <div class="form-group">
       <label for="assignmentType">Assignment Type:</label>
       <select id="assignmentType">
@@ -24,6 +26,7 @@
       </select>
     </div>
 
+    <!-- Scope Type Dropdown -->
     <div class="form-group">
       <label for="scopeType">Scope Type:</label>
       <select id="scopeType">
@@ -33,33 +36,39 @@
       </select>
     </div>
 
+    <!-- Subscription ID Input -->
     <div class="form-group" id="subscriptionInputs">
       <label for="subscriptionId">Subscription ID:</label>
       <input type="text" id="subscriptionId" placeholder="Enter Subscription ID" required>
     </div>
     <div class="error" id="subscriptionError">Subscription ID is required.</div>
 
+    <!-- Resource Group Input (Hidden by Default) -->
     <div class="form-group" id="rgInputs" style="display:none;">
       <label for="resourceGroups">Resource Groups:</label>
       <input type="text" id="resourceGroups" placeholder="Enter Resource Groups (comma separated)">
     </div>
     <div class="error" id="rgError">At least one Resource Group is required.</div>
 
+    <!-- Resource Input (Hidden by Default) -->
     <div class="form-group" id="resourceInputs" style="display:none;">
       <label for="resources">Resources:</label>
       <input type="text" id="resources" placeholder="Enter Resource Names (comma separated)">
     </div>
     <div class="error" id="resourceError">At least one Resource is required.</div>
 
+    <!-- Groups Input -->
     <div class="form-group">
       <label for="groups">Groups:</label>
       <input type="text" id="groups" placeholder="Enter Groups (comma separated)">
     </div>
     <div class="error" id="groupsError">At least one Group is required.</div>
 
+    <!-- Buttons -->
     <button onclick="generateJSON()">Generate JSON</button>
     <button id="submitPRButton" onclick="submitPR()" style="display:none;">Submit PR</button>
 
+    <!-- JSON Output -->
     <pre id="jsonOutput"></pre>
   </div>
 
@@ -134,53 +143,60 @@
     }
 
     function submitPR() {
-      if (jsonData.length === 0) {
-        alert("❌ No JSON generated. Please generate JSON before submitting.");
-        return;
-      }
-
-      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
-
-      fetch(functionUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jsonData)
-      })
-      .then(response => response.json())
-      .then(result => {
-        console.log("Function response:", result);
-
-        if (result.pr_url) {
-          document.getElementById("jsonOutput").textContent +=
-            "\n\n✅ PR Created Successfully:\n" + result.pr_url;
-          setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
+        if (jsonData.length === 0) {
+          alert("❌ No JSON generated. Please generate JSON before submitting.");
           return;
         }
 
-        if (result.message && result.message.includes("No changes detected")) {
-          document.getElementById("jsonOutput").textContent +=
-            "\n\nℹ️ No changes detected. Your request is already applied.";
-          setTimeout(() => alert("ℹ️ No changes detected. Your request is already applied."), 500);
-          return;
-        }
+        const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
 
-        if (result.message && (result.message.includes("already exists") || result.message.includes("duplicate"))) {
-          document.getElementById("jsonOutput").textContent +=
-            "\n\n⚠️ This assignment already exists and does not need a new PR.";
-          setTimeout(() => alert("⚠️ This assignment already exists and does not need a new PR."), 500);
-          return;
-        }
+        fetch(functionUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(jsonData)
+        })
+        .then(response => response.json())
+        .then(result => {
+          console.log("Function response:", result);
 
-        document.getElementById("jsonOutput").textContent +=
-          "\n\n❌ PR Creation Failed! Check logs for details.";
-        setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
-      })
-      .catch(error => {
-        console.error("❌ Error sending JSON to Function:", error);
-        document.getElementById("jsonOutput").textContent +=
-          "\n\n❌ PR Creation Failed! Check the console for details.";
-        setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
-      });
+          if (result.message) {
+            if (result.pr_url) {
+              document.getElementById("jsonOutput").textContent +=
+                "\n\n✅ PR Created Successfully:\n" + result.pr_url;
+
+              setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
+              return;
+            }
+
+            if (result.message.includes("No changes detected")) {
+              document.getElementById("jsonOutput").textContent +=
+                "\n\nℹ️ No changes detected. Your request is already applied.";
+
+              setTimeout(() => alert("ℹ️ No changes detected. Your request is already applied."), 500);
+              return;
+            }
+
+            if (result.message.includes("already exists") || result.message.includes("duplicate")) {
+              document.getElementById("jsonOutput").textContent +=
+                "\n\n⚠️ This assignment already exists and does not need a new PR.";
+
+              setTimeout(() => alert("⚠️ This assignment already exists and does not need a new PR."), 500);
+              return;
+            }
+          }
+
+          document.getElementById("jsonOutput").textContent +=
+            "\n\n❌ PR Creation Failed! Check logs for details.";
+
+          setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
+        })
+        .catch(error => {
+          console.error("❌ Error sending JSON to Function:", error);
+          document.getElementById("jsonOutput").textContent +=
+            "\n\n❌ PR Creation Failed! Check the console for details.";
+
+          setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
+        });
     }
 
     document.getElementById('scopeType').addEventListener('change', function() {
