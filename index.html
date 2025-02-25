@@ -143,60 +143,45 @@
     }
 
     function submitPR() {
-        if (jsonData.length === 0) {
-          alert("❌ No JSON generated. Please generate JSON before submitting.");
-          return;
-        }
+      if (jsonData.length === 0) {
+        alert("❌ No JSON generated. Please generate JSON before submitting.");
+        return;
+      }
 
-        const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+      const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
 
-        fetch(functionUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(jsonData)
-        })
-        .then(response => response.json())
-        .then(result => {
-          console.log("Function response:", result);
+      fetch(functionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        console.log("Function response:", result);
 
-          if (result.message) {
-            if (result.pr_url) {
-              document.getElementById("jsonOutput").textContent +=
-                "\n\n✅ PR Created Successfully:\n" + result.pr_url;
-
-              setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
-              return;
-            }
-
-            if (result.message.includes("No changes detected")) {
-              document.getElementById("jsonOutput").textContent +=
-                "\n\nℹ️ No changes detected. Your request is already applied.";
-
-              setTimeout(() => alert("ℹ️ No changes detected. Your request is already applied."), 500);
-              return;
-            }
-
-            if (result.message.includes("already exists") || result.message.includes("duplicate")) {
-              document.getElementById("jsonOutput").textContent +=
-                "\n\n⚠️ This assignment already exists and does not need a new PR.";
-
-              setTimeout(() => alert("⚠️ This assignment already exists and does not need a new PR."), 500);
-              return;
-            }
+        if (result.message) {
+          if (result.pr_url) {
+            alert("✅ PR Created Successfully!\n" + result.pr_url);
+            return;
           }
 
-          document.getElementById("jsonOutput").textContent +=
-            "\n\n❌ PR Creation Failed! Check logs for details.";
+          if (result.message.includes("No changes detected")) {
+            alert("ℹ️ No changes detected. Your request is already applied.");
+            return;
+          }
 
-          setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
-        })
-        .catch(error => {
-          console.error("❌ Error sending JSON to Function:", error);
-          document.getElementById("jsonOutput").textContent +=
-            "\n\n❌ PR Creation Failed! Check the console for details.";
+          if (result.message.includes("already exists") || result.message.includes("duplicate")) {
+            alert("⚠️ This assignment already exists and does not need a new PR.");
+            return;
+          }
+        }
 
-          setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
-        });
+        alert("❌ PR Creation Failed! Check console for details.");
+      })
+      .catch(error => {
+        console.error("❌ Error sending JSON to Function:", error);
+        alert("❌ PR Creation Failed! Check console for details.");
+      });
     }
 
     document.getElementById('scopeType').addEventListener('change', function() {
@@ -204,6 +189,7 @@
       document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'flex' : 'none';
       document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'flex' : 'none';
     });
+
   </script>
 </body>
 </html>
