@@ -150,27 +150,38 @@
       .then(result => {
         console.log("Function response:", result);
 
-        // Ensure PR URL is valid
-        if (result.pr_url) {
-          document.getElementById('jsonOutput').textContent +=
-            "\n\n✅ PR Successfully Created:\n" + result.pr_url;
+        // Case 1: ✅ PR Successfully Created
+  if (result.pr_url) {
+    document.getElementById('jsonOutput').textContent +=
+      "\n\n✅ PR Successfully Created:\n" + result.pr_url;
 
-          // Show success message in a controlled way
-          setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
-        } else {
-          document.getElementById('jsonOutput').textContent +=
-            "\n\nℹ️ No changes detected. PR was not created.";
+    setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
+    return; // Stop further execution
+  }
 
-          setTimeout(() => alert("ℹ️ No changes detected, PR was not created."), 500);
-        }
-      })
-      .catch(error => {
-        console.error("❌ Error sending JSON to Function:", error);
-        document.getElementById('jsonOutput').textContent +=
-          "\n\n❌ Failed to create PR. Check the console for details.";
+  // Case 2: ℹ️ No Changes Detected
+  if (result.message && result.message.includes("No changes detected")) {
+    document.getElementById('jsonOutput').textContent +=
+      "\n\nℹ️ No changes detected. PR was not created.";
 
-        setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
-      });
+    setTimeout(() => alert("ℹ️ No changes detected, PR was not created."), 500);
+    return; // Stop further execution
+  }
+
+  // Case 3: ❌ Unexpected Error (Generic Failure)
+  document.getElementById('jsonOutput').textContent +=
+    "\n\n❌ PR Creation Failed! Check logs for details.";
+
+  setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
+})
+.catch(error => {
+  // Case 4: ❌ Real Error from API
+  console.error("❌ Error sending JSON to Function:", error);
+  document.getElementById('jsonOutput').textContent +=
+    "\n\n❌ PR Creation Failed! Check the console for details.";
+
+  setTimeout(() => alert("❌ PR Creation Failed! Check console for details."), 500);
+});
     }
 
     document.getElementById('scopeType').addEventListener('change', function() {
