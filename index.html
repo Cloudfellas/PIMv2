@@ -59,7 +59,8 @@
 
     <button onclick="generateJSON()">Generate JSON</button>
     <pre id="jsonOutput"></pre>
-    <button id="submitPR" class="hidden" onclick="submitPR()">Submit PR</button>
+
+    <button id="submitPR" class="hidden green-button" onclick="submitPR()">Submit PR</button>
   </div>
 
   <script>
@@ -154,7 +155,7 @@
     }
 
     document.getElementById('scopeType').addEventListener('change', function() {
-      document.getElementById('rgInputs').classList.toggle('hidden', this.value === 'subscription');
+      document.getElementById('rgInputs').classList.toggle('hidden', this.value !== 'rg' && this.value !== 'resource');
       document.getElementById('resourceInputs').classList.toggle('hidden', this.value !== 'resource');
     });
 
