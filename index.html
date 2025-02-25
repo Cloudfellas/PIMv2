@@ -58,7 +58,7 @@
     <div class="error" id="groupsError">At least one Group is required.</div>
 
     <button onclick="generateJSON()">Generate JSON</button>
-    <button id="submitPRButton" onclick="submitPR()" style="display:none; background-color: green;">Submit PR</button>
+    <button id="submitPRButton" onclick="submitPR()" style="display:none;">Submit PR</button>
 
     <pre id="jsonOutput"></pre>
   </div>
@@ -130,7 +130,7 @@
 
       jsonData = assignments;
       document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-      document.getElementById('submitPRButton').style.display = "block"; // Show Submit PR button after generating JSON
+      document.getElementById('submitPRButton').style.display = "block";
     }
 
     function submitPR() {
@@ -150,27 +150,25 @@
       .then(result => {
         console.log("Function response:", result);
 
-        if (result.message) {
-          if (result.pr_url) {
-            document.getElementById("jsonOutput").textContent +=
-              "\n\n✅ PR Created Successfully:\n" + result.pr_url;
-            setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
-            return;
-          }
+        if (result.pr_url) {
+          document.getElementById("jsonOutput").textContent +=
+            "\n\n✅ PR Created Successfully:\n" + result.pr_url;
+          setTimeout(() => alert("✅ PR Created Successfully!\n" + result.pr_url), 500);
+          return;
+        }
 
-          if (result.message.includes("No changes detected")) {
-            document.getElementById("jsonOutput").textContent +=
-              "\n\nℹ️ No changes detected. Your request is already applied.";
-            setTimeout(() => alert("ℹ️ No changes detected. Your request is already applied."), 500);
-            return;
-          }
+        if (result.message && result.message.includes("No changes detected")) {
+          document.getElementById("jsonOutput").textContent +=
+            "\n\nℹ️ No changes detected. Your request is already applied.";
+          setTimeout(() => alert("ℹ️ No changes detected. Your request is already applied."), 500);
+          return;
+        }
 
-          if (result.message.includes("already exists") || result.message.includes("duplicate")) {
-            document.getElementById("jsonOutput").textContent +=
-              "\n\n⚠️ This assignment already exists and does not need a new PR.";
-            setTimeout(() => alert("⚠️ This assignment already exists and does not need a new PR."), 500);
-            return;
-          }
+        if (result.message && (result.message.includes("already exists") || result.message.includes("duplicate"))) {
+          document.getElementById("jsonOutput").textContent +=
+            "\n\n⚠️ This assignment already exists and does not need a new PR.";
+          setTimeout(() => alert("⚠️ This assignment already exists and does not need a new PR."), 500);
+          return;
         }
 
         document.getElementById("jsonOutput").textContent +=
