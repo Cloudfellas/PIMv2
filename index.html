@@ -26,7 +26,7 @@
 
     <div class="form-group">
       <label for="scopeType">Scope Type:</label>
-      <select id="scopeType">
+      <select id="scopeType" onchange="toggleFields()">
         <option value="subscription">Subscription Level</option>
         <option value="rg">Resource Group Level</option>
         <option value="resource">Specific Resource Level</option>
@@ -65,6 +65,12 @@
 
   <script>
     let jsonData = [];
+
+    function toggleFields() {
+      const scopeType = document.getElementById('scopeType').value;
+      document.getElementById('rgInputs').classList.toggle('hidden', scopeType === 'subscription');
+      document.getElementById('resourceInputs').classList.toggle('hidden', scopeType !== 'resource');
+    }
 
     function generateJSON() {
       const role = document.getElementById('role').value.trim();
@@ -154,10 +160,7 @@
       .catch(error => console.error("Error sending JSON to Function:", error));
     }
 
-    document.getElementById('scopeType').addEventListener('change', function() {
-      document.getElementById('rgInputs').classList.toggle('hidden', this.value !== 'rg' && this.value !== 'resource');
-      document.getElementById('resourceInputs').classList.toggle('hidden', this.value !== 'resource');
-    });
+    document.getElementById('scopeType').addEventListener('change', toggleFields);
 
     document.querySelectorAll("input").forEach(input => {
       input.addEventListener("input", function() {
@@ -167,6 +170,9 @@
         }
       });
     });
+
+    // Hide Resource Group & Resource fields by default
+    toggleFields();
   </script>
 </body>
 </html>
