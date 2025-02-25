@@ -59,73 +59,102 @@
     let jsonData = [];
 
     function generateJSON() {
-      const role = document.getElementById('role').value.trim();
-      const scopeType = document.getElementById('scopeType').value;
-      const subscriptionId = document.getElementById('subscriptionId').value.trim();
-      const resourceGroups = document.getElementById('resourceGroups').value.split(',')
-        .map(rg => rg.trim()).filter(rg => rg !== "");
-      const resources = document.getElementById('resources').value.split(',')
-        .map(res => res.trim()).filter(res => res !== "");
-      const groups = document.getElementById('groups').value.split(',')
-        .map(g => g.trim()).filter(g => g !== "");
+        const role = document.getElementById('role').value.trim();
+        const scopeType = document.getElementById('scopeType').value;
+        const subscriptionId = document.getElementById('subscriptionId').value.trim();
+        const resourceGroups = document.getElementById('resourceGroups').value.split(',')
+            .map(rg => rg.trim()).filter(rg => rg !== "");
+        const resources = document.getElementById('resources').value.split(',')
+            .map(res => res.trim()).filter(res => res !== "");
+        const groups = document.getElementById('groups').value.split(',')
+            .map(g => g.trim()).filter(g => g !== "");
 
-      let valid = true;
+        let valid = true;
 
-      function validateField(value, errorId) {
-        if (!value || (Array.isArray(value) && value.length === 0)) {
-          document.getElementById(errorId).style.display = "block";
-          valid = false;
-        } else {
-          document.getElementById(errorId).style.display = "none";
+        function validateField(value, errorId) {
+            if (!value || (Array.isArray(value) && value.length === 0)) {
+                document.getElementById(errorId).style.display = "block";
+                valid = false;
+            } else {
+                document.getElementById(errorId).style.display = "none";
+            }
         }
-      }
 
-      validateField(role, "roleError");
-      validateField(subscriptionId, "subscriptionError");
-      validateField(groups, "groupsError");
-      if (scopeType !== 'subscription') validateField(resourceGroups, "rgError");
-      if (scopeType === 'resource') validateField(resources, "resourceError");
+        validateField(role, "roleError");
+        validateField(subscriptionId, "subscriptionError");
+        validateField(groups, "groupsError");
+        if (scopeType !== 'subscription') validateField(resourceGroups, "rgError");
+        if (scopeType === 'resource') validateField(resources, "resourceError");
 
-      if (!valid) return;
+        if (!valid) return;
 
-      let assignments = [];
+        let assignments = [];
 
-      if (scopeType === 'subscription') {
-        assignments.push({
-          "Scope": { "SubscriptionId": subscriptionId },
-          "Role": role,
-          "Groups": groups
-        });
-      } else if (scopeType === 'rg') {
-        resourceGroups.forEach(rg => {
-          assignments.push({
-            "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg },
-            "Role": role,
-            "Groups": groups
-          });
-        });
-      } else {
-        resourceGroups.forEach(rg => {
-          resources.forEach(res => {
+        if (scopeType === 'subscription') {
             assignments.push({
-              "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res },
-              "Role": role,
-              "Groups": groups
+                "Scope": { "SubscriptionId": subscriptionId },
+                "Role": role,
+                "Groups": groups
             });
-          });
-        });
-      }
+        } else if (scopeType === 'rg') {
+            resourceGroups.forEach(rg => {
+                assignments.push({
+                    "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg },
+                    "Role": role,
+                    "Groups": groups
+                });
+            });
+        } else {
+            resourceGroups.forEach(rg => {
+                resources.forEach(res => {
+                    assignments.push({
+                        "Scope": { "SubscriptionId": subscriptionId, "ResourceGroupName": rg, "ResourceName": res },
+                        "Role": role,
+                        "Groups": groups
+                    });
+                });
+            });
+        }
 
-      jsonData = assignments;
-      document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
-      document.getElementById('submitPRButton').style.display = "block";
+        jsonData = assignments;
+        document.getElementById('jsonOutput').textContent = JSON.stringify(jsonData, null, 4);
+        document.getElementById('submitPRButton').style.display = "block";
+    }
+
+    function submitPR() {
+        if (jsonData.length === 0) {
+            alert("Please generate JSON before submitting.");
+            return;
+        }
+
+        const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
+
+        fetch(functionUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jsonData)
+        })
+        .then(response => response.json())
+        .then(result => {
+            console.log("Function response:", result);
+            if (result.pr_url) {
+                alert(`PR Created Successfully: ${result.pr_url}`);
+            } else {
+                alert("No changes detected. PR was not created.");
+            }
+        })
+        .catch(error => {
+            console.error("Error submitting PR:", error);
+            alert("Error submitting PR. Check console for details.");
+        });
     }
 
     document.getElementById('scopeType').addEventListener('change', function() {
-      document.getElementById('subscriptionInputs').style.display = 'flex';
-      document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'flex' : 'none';
-      document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'flex' : 'none';
+        document.getElementById('subscriptionInputs').style.display = 'flex';
+        document.getElementById('rgInputs').style.display = this.value !== 'subscription' ? 'flex' : 'none';
+        document.getElementById('resourceInputs').style.display = this.value === 'resource' ? 'flex' : 'none';
     });
-  </script>
+</script>
+
 </body>
 </html>
