@@ -142,49 +142,45 @@
       document.getElementById('submitPRButton').style.display = "block";
     }
 
-    function submitPR() {
+    async function submitPR() {
       if (jsonData.length === 0) {
-          alert("❌ No JSON generated. Please generate JSON before submitting.");
-          return;
+        alert("❌ No JSON generated. Please generate JSON before submitting.");
+        return;
       }
 
       const functionUrl = "https://pimv2-pr-function.azurewebsites.net/create-gh-pr-sub";
 
-      fetch(functionUrl, {
+      try {
+        const response = await fetch(functionUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(jsonData)
-      })
-      .then(response => response.json())
-      .then(result => {
-          console.log("Function response:", result);
+        });
 
-          // ✅ Case 1: PR Created Successfully
-          if (result.pr_url) {
-              alert("✅ PR Created Successfully!\n" + result.pr_url);
-              return;
-          }
+        const result = await response.json();
+        console.log("Function response:", result);
 
-          // ℹ️ Case 2: No Changes Detected (Duplicate Assignment)
-          if (result.message && result.message.includes("No changes detected")) {
-              alert("ℹ️ No changes detected. Your request is already applied.");
-              return;
-          }
+        if (result.pr_url) {
+          alert("✅ PR Created Successfully!\n" + result.pr_url);
+          return;
+        }
 
-          // ⚠️ Case 3: Assignment Already Exists
-          if (result.message && (result.message.includes("already exists") || result.message.includes("duplicate"))) {
-              alert("⚠️ This assignment already exists and does not need a new PR.");
-              return;
-          }
+        if (result.message.includes("No changes detected")) {
+          alert("ℹ️ No changes detected. Your request is already applied.");
+          return;
+        }
 
-          // ❌ Case 4: Unexpected Response (Edge Case)
-          alert("❌ PR Creation Failed! Check console for details.");
-      })
-      .catch(error => {
-          console.error("❌ Error sending JSON to Function:", error);
-          alert("❌ PR Creation Failed! Check console for details.");
-      });
-  }
+        if (result.message.includes("already exists") || result.message.includes("duplicate")) {
+          alert("⚠️ This assignment already exists and does not need a new PR.");
+          return;
+        }
+
+        alert("❌ PR Creation Failed! Check console for details.");
+      } catch (error) {
+        console.error("❌ Error sending JSON to Function:", error);
+        alert("❌ PR Creation Failed! Check console for details.");
+      }
+    }
 
     document.getElementById('scopeType').addEventListener('change', function() {
       document.getElementById('subscriptionInputs').style.display = 'flex';
